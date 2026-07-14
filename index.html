@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YCTasks</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0F172A;--surface:#1E293B;--surface2:#273549;--surface3:#2E3F56;
+  --border:#334155;--border2:#475569;
+  --text:#F1F5F9;--text2:#94A3B8;--text3:#64748B;
+  --teal:#14B8A6;--teal-d:#0F766E;--teal-dk:#042F2E;
+  --coral:#F97316;--coral-d:#C2410C;--coral-dk:#431407;
+  --pink:#EC4899;--pink-d:#BE185D;--pink-dk:#500724;
+  --blue:#3B82F6;--blue-d:#1D4ED8;--blue-dk:#1E3A5F;
+  --green:#22C55E;--green-d:#15803D;--green-dk:#052E16;
+  --amber:#F59E0B;--amber-d:#B45309;--amber-dk:#451a03;
+  --purple:#A78BFA;--purple-d:#6D28D9;--purple-dk:#2e1065;
+  --radius:10px;--radius-sm:6px;
+  --s-done-bg:#052E16;--s-done-fg:#4ADE80;
+  --s-prog-bg:#1E3A5F;--s-prog-fg:#60A5FA;
+  --s-pend-bg:#422006;--s-pend-fg:#FCD34D;
+  --s-canc-bg:#3B0764;--s-canc-fg:#C084FC;
+  --p-high-bg:#450A0A;--p-high-fg:#F87171;
+  --p-med-bg:#422006;--p-med-fg:#FCD34D;
+  --p-low-bg:#052E16;--p-low-fg:#4ADE80;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* TOP BAR */
+.topbar{display:flex;align-items:center;gap:10px;padding:0 20px;height:54px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;flex-wrap:nowrap}
+.topbar-logo{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.3px;white-space:nowrap}
+.topbar-logo span{color:var(--teal)}
+.topbar-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--teal);color:#fff}.btn-primary:hover{background:var(--teal-d)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-danger{background:#7F1D1D;color:#FCA5A5}.btn-danger:hover{background:#991B1B}
+.btn-sm{padding:5px 10px;font-size:12px}
+
+/* TABS */
+.tabs-wrap{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:2px;overflow-x:auto}
+.tab{padding:11px 14px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;user-select:none}
+.tab:hover{color:var(--text2)}.tab.active{color:var(--text);border-bottom-color:var(--teal)}
+
+/* MONTH FILTER BAR */
+.month-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.month-bar-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.month-pills{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.mpill{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);color:var(--text3);transition:all .15s;white-space:nowrap}
+.mpill:hover{border-color:var(--teal);color:var(--teal)}
+.mpill.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.mpill.all{border-color:var(--border2)}
+.year-select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:12px;outline:none;cursor:pointer}
+
+/* CONTENT */
+.content{padding:20px;max-width:1600px;margin:0 auto}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.kpi-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.kpi-value{font-size:30px;font-weight:700;color:var(--text);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.kpi-card.k-done .kpi-value{color:var(--green)}.kpi-card.k-prog .kpi-value{color:var(--blue)}.kpi-card.k-pend .kpi-value{color:var(--amber)}
+
+/* MONTH OVERVIEW GRID */
+.month-overview{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:18px}
+.mo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:border-color .15s}
+.mo-card:hover{border-color:var(--teal)}
+.mo-card.mo-active{border-color:var(--teal);background:var(--teal-dk)}
+.mo-month{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.mo-month span{font-size:11px;color:var(--text3);font-weight:400}
+.mo-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mo-stat{border-radius:6px;padding:6px 8px;text-align:center}
+.mo-stat-val{font-size:16px;font-weight:700}
+.mo-stat-lbl{font-size:10px;margin-top:1px}
+.mo-bar{height:4px;border-radius:2px;margin-top:10px;background:var(--border);overflow:hidden}
+.mo-bar-fill{height:100%;border-radius:2px;background:var(--teal);transition:width .3s}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.chart-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.chart-panel h3{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:16px}
+.bar-chart{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:flex;align-items:center;gap:10px}
+.bar-label{font-size:12px;color:var(--text2);width:90px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:20px;background:var(--surface2);border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s;display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.bar-fill span{font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
+.bar-zero{font-size:11px;color:var(--text3);position:absolute;left:8px;top:50%;transform:translateY(-50%)}
+
+/* DASH GRID */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.dash-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.dash-panel h3{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px}
+.dash-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:4px}
+.dash-row-label{font-size:13px;font-weight:500}
+.dash-row-val{font-size:13px;font-weight:700;min-width:28px;text-align:right}
+
+/* TABLE */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.section-header h2{font-size:15px;font-weight:600}
+.filters-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px}
+.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:13px;width:180px}
+.search-box input::placeholder{color:var(--text3)}
+.filter-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text);font-size:13px;outline:none;cursor:pointer}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--surface2);padding:9px 13px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+td{padding:9px 13px;font-size:13px;color:var(--text);vertical-align:middle}
+.td-title{font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-desc{color:var(--text2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.td-num{color:var(--text3);font-size:12px;width:32px}
+.empty-state{text-align:center;padding:50px 20px;color:var(--text3)}
+.empty-state .e-icon{font-size:36px;margin-bottom:10px}
+.empty-state p{font-size:13px;margin-bottom:14px}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-done{background:var(--s-done-bg);color:var(--s-done-fg)}
+.badge-prog{background:var(--s-prog-bg);color:var(--s-prog-fg)}
+.badge-pend{background:var(--s-pend-bg);color:var(--s-pend-fg)}
+.badge-canc{background:var(--s-canc-bg);color:var(--s-canc-fg)}
+.badge-high{background:var(--p-high-bg);color:var(--p-high-fg)}
+.badge-med{background:var(--p-med-bg);color:var(--p-med-fg)}
+.badge-low{background:var(--p-low-bg);color:var(--p-low-fg)}
+.badge-teal{background:var(--teal-dk);color:var(--teal)}
+.badge-coral{background:var(--coral-dk);color:var(--coral)}
+.badge-pink{background:var(--pink-dk);color:var(--pink)}
+.badge-blue{background:var(--blue-dk);color:var(--blue)}
+.badge-purple{background:var(--purple-dk);color:var(--purple)}
+.badge-amber{background:var(--amber-dk);color:var(--amber)}
+
+/* ROW ACTIONS */
+.row-actions{display:flex;gap:5px;opacity:0;transition:opacity .15s}
+tbody tr:hover .row-actions{opacity:1}
+.row-btn{background:var(--surface3);border:1px solid var(--border2);border-radius:4px;color:var(--text2);padding:3px 8px;font-size:11px;cursor:pointer}
+.row-btn:hover{color:var(--text);background:var(--surface)}
+.row-btn.del:hover{color:#F87171;border-color:#7F1D1D}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column}
+.modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-header h3{font-size:15px;font-weight:600}
+.modal-close{background:var(--surface2);border:none;color:var(--text2);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--surface3);color:var(--text)}
+.modal-body{padding:18px 22px;overflow-y:auto;flex:1}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--teal)}
+.form-group textarea{resize:vertical;min-height:68px}
+.form-group select option{background:var(--surface2)}
+
+/* NOTES + VENDORS */
+.notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.note-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px;cursor:pointer;transition:border-color .15s}
+.note-card:hover{border-color:var(--border2)}
+.note-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px}
+.note-card-title{font-size:13px;font-weight:600}
+.note-card-body{font-size:12px;color:var(--text2);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.note-card-footer{margin-top:9px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.vendor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.vendor-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px;cursor:pointer;transition:border-color .15s}
+.vendor-card:hover{border-color:var(--border2)}
+.vendor-name{font-size:14px;font-weight:600;margin-bottom:3px}
+.vendor-service{font-size:12px;color:var(--teal);margin-bottom:9px}
+.vendor-info-row{display:flex;gap:6px;font-size:12px;color:var(--text2);margin-bottom:3px}
+.vendor-info-row span:first-child{color:var(--text3);min-width:62px}
+
+/* SECTION DESC */
+.section-desc{font-size:12px;color:var(--text3);margin-bottom:12px;padding:9px 13px;background:var(--surface);border-radius:var(--radius-sm);border-left:3px solid var(--teal)}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius);padding:11px 16px;font-size:13px;font-weight:500;z-index:999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.t-success{border-left:3px solid var(--green)}
+.toast.t-error{border-left:3px solid #F87171}
+
+/* OVERDUE highlight */
+.overdue-row{background:#1c0a0a !important}
+.overdue-row:hover{background:#2a0f0f !important}
+
+@media(max-width:768px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .dash-grid,.charts-row{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  td,thead th{padding:7px 9px}
+  .month-overview{grid-template-columns:1fr 1fr}
+}
+
+/* LOADING / SYNC STATES */
+.loading-overlay{position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;backdrop-filter:blur(4px)}
+.loading-overlay.hidden{display:none}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:var(--text2);font-size:14px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);display:inline-block;margin-right:6px;transition:background .3s}
+.sync-dot.syncing{background:var(--amber);animation:pulse 1s infinite}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.err{background:#F87171}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.config-screen{position:fixed;inset:0;background:var(--bg);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px}
+.config-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:36px;width:100%;max-width:520px}
+.config-card h2{font-size:20px;font-weight:700;margin-bottom:6px}
+.config-card p{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6}
+.config-step{display:flex;gap:10px;margin-bottom:12px;font-size:13px;color:var(--text2)}
+.config-step b{color:var(--teal);font-size:12px;background:var(--teal-dk);padding:2px 8px;border-radius:10px;white-space:nowrap;align-self:flex-start;margin-top:1px}
+
+
+/* LIGHT MODE VARIABLES */
+body.light{
+  --bg:#F1F5F9;--surface:#FFFFFF;--surface2:#F8FAFC;--surface3:#EFF6FF;
+  --border:#E2E8F0;--border2:#CBD5E1;
+  --text:#0F172A;--text2:#475569;--text3:#94A3B8;
+  --teal:#0F766E;--teal-d:#0D9488;--teal-dk:#CCFBF1;
+  --coral:#C2410C;--coral-d:#EA580C;--coral-dk:#FFEDD5;
+  --pink:#BE185D;--pink-d:#DB2777;--pink-dk:#FCE7F3;
+  --blue:#1D4ED8;--blue-d:#2563EB;--blue-dk:#DBEAFE;
+  --green:#15803D;--green-d:#16A34A;--green-dk:#DCFCE7;
+  --amber:#B45309;--amber-d:#D97706;--amber-dk:#FEF3C7;
+  --purple:#6D28D9;--purple-d:#7C3AED;--purple-dk:#EDE9FE;
+  --s-done-bg:#DCFCE7;--s-done-fg:#14532D;
+  --s-prog-bg:#DBEAFE;--s-prog-fg:#1E3A8A;
+  --s-pend-bg:#FEF3C7;--s-pend-fg:#78350F;
+  --s-canc-bg:#F3E8FF;--s-canc-fg:#4C1D95;
+  --p-high-bg:#FEE2E2;--p-high-fg:#7F1D1D;
+  --p-med-bg:#FEF3C7;--p-med-fg:#78350F;
+  --p-low-bg:#DCFCE7;--p-low-fg:#14532D;
+}
+body.light .overdue-row{background:#FEF2F2 !important}
+body.light .overdue-row:hover{background:#FEE2E2 !important}
+body.light .loading-overlay{background:rgba(241,245,249,.9)}
+body.light .config-screen{background:var(--bg)}
+body.light thead th{background:#F1F5F9}
+body.light .bar-fill span{color:#fff}
+body.light .modal-overlay{background:rgba(15,23,42,.5)}
+
+/* THEME TOGGLE BUTTON */
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-size:16px;transition:all .15s;flex-shrink:0}
+.theme-toggle:hover{background:var(--surface2);color:var(--text)}
+
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Loading…</div>
+</div>
+
+<!-- CONFIG SCREEN (shown first-time) -->
+<div class="config-screen" id="configScreen" style="display:none">
+  <div class="config-card">
+    <h2>🔗 Connect to Supabase</h2>
+    <p>Paste your Supabase project credentials below. You only need to do this once — they are saved in your browser.</p>
+    <div class="config-step"><b>Step 1</b> Go to supabase.com → your project → Project Settings → API</div>
+    <div class="config-step"><b>Step 2</b> Copy the Project URL and anon/public key below</div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Supabase Project URL</label>
+      <input id="cfg_url" placeholder="https://xyzxyz.supabase.co" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;font-family:monospace"/>
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label>Anon / Public API Key</label>
+      <input id="cfg_key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;font-family:monospace"/>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="applyConfig()" style="flex:1">Connect & Load Data</button>
+    </div>
+    <div style="margin-top:14px;font-size:12px;color:var(--text3);line-height:1.6">
+      💡 Your credentials are stored only in this browser's localStorage. They are never sent anywhere except directly to your own Supabase project.
+    </div>
+  </div>
+</div>
+
+
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">YC<span>Tasks</span></div>
+  <div class="tabs-wrap" id="mainTabs" style="background:transparent;border:none;padding:0;margin-left:6px;flex:1;min-width:0">
+    <div class="tab active" data-tab="dashboard">📊 Dashboard</div>
+    <div class="tab" data-tab="monthly">📅 Monthly View</div>
+    <div class="tab" data-tab="all">📋 All Tasks</div>
+    <div class="tab" data-tab="events">🎉 Events</div>
+    <div class="tab" data-tab="social">📱 Social & Video</div>
+    <div class="tab" data-tab="design">🎨 Design & Print</div>
+    <div class="tab" data-tab="notes">📒 Notes</div>
+    <div class="tab" data-tab="vendors">🏭 Vendors</div>
+  </div>
+  <div class="topbar-actions">
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button><span class="sync-dot" id="syncDot" title="Sync status"></span><button class="btn btn-ghost btn-sm" onclick="exportExcel()">⬇ Export Excel</button><button class="btn btn-ghost btn-sm" onclick="clearConfig()" title="Change Supabase credentials">⚙ DB</button>
+    <button class="btn btn-primary btn-sm" onclick="openAdd()">+ Add Task</button>
+  </div>
+</div>
+
+<!-- MONTH FILTER BAR (hidden on dashboard/monthly/notes/vendors) -->
+<div class="month-bar" id="monthBar" style="display:none">
+  <span class="month-bar-label">Filter by</span>
+  <select class="year-select" id="yearSelect" onchange="onYearChange()"></select>
+  <div class="month-pills" id="monthPills"></div>
+</div>
+
+<div class="content" id="mainContent"></div>
+
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header"><h3 id="modalTitle">Add Task</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header"><h3 id="modalTitle">Add Task</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ═══════════════════════════════════════════════════════════
+// CONFIG — paste your Supabase credentials here
+// ═══════════════════════════════════════════════════════════
+const CONFIG_KEY = 'wfm_supabase_config';
+
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem(CONFIG_KEY)) || null; } catch { return null; }
+}
+function saveConfig(url, key) {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ url: url.trim(), key: key.trim() }));
+}
+
+// ── Supabase REST helper ──────────────────────────────────────────────────────
+let SUPA_URL = '', SUPA_KEY = '';
+
+async function supaFetch(method, table, body=null, query='') {
+  const url = `${SUPA_URL}/rest/v1/${table}${query}`;
+  const headers = {
+    'apikey': SUPA_KEY,
+    'Authorization': `Bearer ${SUPA_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': method==='POST' ? 'return=representation' : method==='PATCH'||method==='DELETE' ? 'return=representation' : '',
+  };
+  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supabase ${method} ${table}: ${err}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+// ── Field name converters (camelCase ↔ snake_case) ───────────────────────────
+function toSnake(t) {
+  return {
+    id: t.id,
+    title: t.title,
+    description: t.desc,
+    category: t.category,
+    priority: t.priority,
+    status: t.status,
+    assigned_to: t.assignedTo,
+    start_date: t.startDate || null,
+    due_date: t.dueDate || null,
+    completed_on: t.completedOn || null,
+    linked_to: t.linkedTo,
+    attachments: t.attachments,
+    notes: t.notes,
+    cal_id: t.calId,
+    cal_sync: t.calSync,
+    venue: t.venue,
+    event_date: t.eventDate || null,
+    pax: t.pax,
+    budget: t.budget,
+    content_type: t.contentType,
+    platform: t.platform,
+    publish_date: t.publishDate || null,
+    design_type: t.designType,
+    dimensions: t.dimensions,
+    color_mode: t.colorMode,
+    print_qty: t.printQty,
+    print_due_date: t.printDueDate || null,
+    vendor: t.vendor,
+    vendor_confirmed: t.vendorConfirmed,
+  };
+}
+function fromSnakeTask(r) {
+  return {
+    id: r.id, title: r.title, desc: r.description, category: r.category,
+    priority: r.priority, status: r.status, assignedTo: r.assigned_to,
+    startDate: r.start_date||'', dueDate: r.due_date||'', completedOn: r.completed_on||'',
+    linkedTo: r.linked_to||'', attachments: r.attachments||'', notes: r.notes||'',
+    calId: r.cal_id||'', calSync: r.cal_sync||'Not Synced',
+    venue: r.venue||'', eventDate: r.event_date||'', pax: r.pax||'', budget: r.budget||'',
+    contentType: r.content_type||'', platform: r.platform||'', publishDate: r.publish_date||'',
+    designType: r.design_type||'', dimensions: r.dimensions||'', colorMode: r.color_mode||'',
+    printQty: r.print_qty||'', printDueDate: r.print_due_date||'',
+    vendor: r.vendor||'', vendorConfirmed: r.vendor_confirmed||'',
+  };
+}
+function toSnakeNote(n) {
+  return {
+    id: n.id, note: n.note, type: n.type, priority: n.priority, status: n.status,
+    related_to: n.relatedTo, date_added: n.dateAdded||null, follow_up_date: n.followUpDate||null,
+    done: n.done, details: n.details,
+  };
+}
+function fromSnakeNote(r) {
+  return { id:r.id, note:r.note, type:r.type, priority:r.priority, status:r.status,
+    relatedTo:r.related_to||'', dateAdded:r.date_added||'', followUpDate:r.follow_up_date||'',
+    done:r.done, details:r.details||'' };
+}
+function toSnakeVendor(v) {
+  return {
+    id: v.id, name: v.name, contact: v.contact, service: v.service,
+    phone: v.phone, email: v.email, address: v.address, website: v.website,
+    price_range: v.priceRange, rating: v.rating, last_used: v.lastUsed||null,
+    used_for: v.usedFor, payment_terms: v.paymentTerms, notes: v.notes,
+  };
+}
+function fromSnakeVendor(r) {
+  return { id:r.id, name:r.name, contact:r.contact||'', service:r.service||'',
+    phone:r.phone||'', email:r.email||'', address:r.address||'', website:r.website||'',
+    priceRange:r.price_range||'', rating:r.rating||'', lastUsed:r.last_used||'',
+    usedFor:r.used_for||'', paymentTerms:r.payment_terms||'', notes:r.notes||'' };
+}
+
+// ── In-memory DB (cache, loaded from Supabase on start) ──────────────────────
+let DB = { tasks:[], notes:[], vendors:[] };
+
+// ── LOAD ALL DATA ─────────────────────────────────────────────────────────────
+async function loadAll() {
+  showLoading('Loading your tasks…');
+  try {
+    const [tasks, notes, vendors] = await Promise.all([
+      supaFetch('GET','tasks','','?order=id.asc'),
+      supaFetch('GET','notes','','?order=id.asc'),
+      supaFetch('GET','vendors','','?order=id.asc'),
+    ]);
+    DB.tasks   = tasks.map(fromSnakeTask);
+    DB.notes   = notes.map(fromSnakeNote);
+    DB.vendors = vendors.map(fromSnakeVendor);
+    setSyncStatus('ok');
+  } catch(e) {
+    setSyncStatus('err');
+    showToast('Could not load data — check your credentials','error');
+    console.error(e);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ── CRUD — TASKS ──────────────────────────────────────────────────────────────
+async function dbAddTask(data) {
+  const { id, ...body } = toSnake(data);
+  const [row] = await supaFetch('POST','tasks',body);
+  return fromSnakeTask(row);
+}
+async function dbUpdateTask(id, data) {
+  const { id:_, ...body } = toSnake(data);
+  body.updated_at = new Date().toISOString();
+  const [row] = await supaFetch('PATCH','tasks',body,`?id=eq.${id}`);
+  return fromSnakeTask(row);
+}
+async function dbDeleteTask(id) {
+  await supaFetch('DELETE','tasks',null,`?id=eq.${id}`);
+}
+
+// ── CRUD — NOTES ──────────────────────────────────────────────────────────────
+async function dbAddNote(data) {
+  const { id, ...body } = toSnakeNote(data);
+  const [row] = await supaFetch('POST','notes',body);
+  return fromSnakeNote(row);
+}
+async function dbUpdateNote(id, data) {
+  const { id:_, ...body } = toSnakeNote(data);
+  const [row] = await supaFetch('PATCH','notes',body,`?id=eq.${id}`);
+  return fromSnakeNote(row);
+}
+async function dbDeleteNote(id) { await supaFetch('DELETE','notes',null,`?id=eq.${id}`); }
+
+// ── CRUD — VENDORS ────────────────────────────────────────────────────────────
+async function dbAddVendor(data) {
+  const { id, ...body } = toSnakeVendor(data);
+  const [row] = await supaFetch('POST','vendors',body);
+  return fromSnakeVendor(row);
+}
+async function dbUpdateVendor(id, data) {
+  const { id:_, ...body } = toSnakeVendor(data);
+  const [row] = await supaFetch('PATCH','vendors',body,`?id=eq.${id}`);
+  return fromSnakeVendor(row);
+}
+async function dbDeleteVendor(id) { await supaFetch('DELETE','vendors',null,`?id=eq.${id}`); }
+
+// ── LOADING UI ────────────────────────────────────────────────────────────────
+function showLoading(msg='Saving…') {
+  document.getElementById('loadingText').textContent = msg;
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+function setSyncStatus(state) {
+  const dot = document.getElementById('syncDot');
+  dot.className = `sync-dot ${state}`;
+  dot.title = state==='ok'?'Synced with Supabase':state==='syncing'?'Syncing…':'Sync error';
+}
+
+
+// ═══════════════════════════════════════════
+// FILTER STATE
+// ═══════════════════════════════════════════
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let currentTab='dashboard';
+let activeYear=new Date().getFullYear();
+let activeMonth='all';
+
+function getTaskDate(t){return t.dueDate||t.startDate||t.eventDate||t.publishDate||'';}
+function matchesMonthFilter(t){
+  if(activeMonth==='all')return true;
+  const d=getTaskDate(t);if(!d)return false;
+  const dt=new Date(d);
+  return dt.getFullYear()===activeYear&&dt.getMonth()===activeMonth;
+}
+function getAvailableYears(){
+  const years=new Set();
+  const now=new Date().getFullYear();
+  years.add(now);years.add(now-1);years.add(now+1);
+  DB.tasks.forEach(t=>{const d=getTaskDate(t);if(d)years.add(new Date(d).getFullYear());});
+  return[...years].sort((a,b)=>a-b);
+}
+
+// ═══════════════════════════════════════════
+// BADGES
+// ═══════════════════════════════════════════
+function statusBadge(s){
+  const m={Completed:'done','In Progress':'prog',Pending:'pend',Cancelled:'canc','Design Approved':'done','Sent to Vendor':'prog',Printed:'done'};
+  return`<span class="badge badge-${m[s]||'pend'}">${s}</span>`;
+}
+function priorityBadge(p){
+  return`<span class="badge badge-${p==='High'?'high':p==='Low'?'low':'med'}">${p}</span>`;
+}
+function catBadge(c){
+  const m={'Event':'teal','Social Media':'coral','Design & Print':'pink'};
+  return`<span class="badge badge-${m[c]||'blue'}">${c}</span>`;
+}
+function typeBadge(t,color='blue'){return`<span class="badge badge-${color}">${t}</span>`;}
+
+// ═══════════════════════════════════════════
+// KPI
+// ═══════════════════════════════════════════
+function getKPIs(tasks){
+  return{
+    total:tasks.length,
+    done:tasks.filter(x=>['Completed','Printed'].includes(x.status)).length,
+    prog:tasks.filter(x=>['In Progress','Design Approved','Sent to Vendor'].includes(x.status)).length,
+    pend:tasks.filter(x=>x.status==='Pending').length,
+    canc:tasks.filter(x=>x.status==='Cancelled').length,
+    events:tasks.filter(x=>x.category==='Event').length,
+    social:tasks.filter(x=>x.category==='Social Media').length,
+    design:tasks.filter(x=>x.category==='Design & Print').length,
+  };
+}
+
+// ═══════════════════════════════════════════
+// MONTHLY OVERVIEW DATA
+// ═══════════════════════════════════════════
+function getMonthlyData(year){
+  const result=[];
+  for(let m=0;m<12;m++){
+    const tasks=DB.tasks.filter(t=>{
+      const d=getTaskDate(t);
+      if(!d)return false;
+      const dt=new Date(d);
+      return dt.getFullYear()===year&&dt.getMonth()===m;
+    });
+    if(tasks.length>0||m<=new Date().getMonth()){
+      const k=getKPIs(tasks);
+      result.push({month:m,name:MONTHS[m],short:MONTHS_SHORT[m],...k});
+    }
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════════
+// RENDER DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard(){
+  const k=getKPIs(DB.tasks);
+  const today=new Date();today.setHours(0,0,0,0);
+  const overdue=DB.tasks.filter(t=>{
+    if(['Completed','Cancelled','Printed'].includes(t.status))return false;
+    const d=t.dueDate;return d&&new Date(d)<today;
+  });
+  const upcoming=DB.tasks.filter(t=>{
+    if(['Completed','Cancelled','Printed'].includes(t.status))return false;
+    const d=t.dueDate;if(!d)return false;
+    const diff=(new Date(d)-today)/(1000*60*60*24);
+    return diff>=0&&diff<=7;
+  });
+
+  const monthData=getMonthlyData(new Date().getFullYear());
+  const maxTotal=Math.max(...monthData.map(m=>m.total),1);
+
+  return`
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Total Tasks</div><div class="kpi-value">${k.total}</div><div class="kpi-sub">all time</div></div>
+    <div class="kpi-card k-done"><div class="kpi-label">Completed</div><div class="kpi-value">${k.done}</div><div class="kpi-sub">${k.total?Math.round(k.done/k.total*100):0}% completion rate</div></div>
+    <div class="kpi-card k-prog"><div class="kpi-label">In Progress</div><div class="kpi-value">${k.prog}</div><div class="kpi-sub">currently active</div></div>
+    <div class="kpi-card k-pend"><div class="kpi-label">Pending</div><div class="kpi-value">${k.pend}</div><div class="kpi-sub">${overdue.length} overdue</div></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-panel">
+      <h3>Tasks per Month — ${new Date().getFullYear()}</h3>
+      <div class="bar-chart">
+        ${monthData.map(m=>{
+          const pct=Math.round(m.total/maxTotal*100);
+          const donePct=m.total?Math.round(m.done/m.total*100):0;
+          return`<div class="bar-row">
+            <span class="bar-label">${m.short}</span>
+            <div class="bar-track">
+              ${m.total>0
+                ?`<div class="bar-fill" style="width:${pct}%;background:var(--teal)"><span>${m.total}</span></div>`
+                :`<span class="bar-zero">0</span>`}
+            </div>
+            <span style="font-size:11px;color:var(--text3);width:32px;text-align:right;flex-shrink:0">${donePct}%</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="chart-panel">
+      <h3>By Category</h3>
+      <div class="bar-chart" style="margin-bottom:18px">
+        ${[['🎉 Events',k.events,'var(--teal)'],['📱 Social & Video',k.social,'var(--coral)'],['🎨 Design & Print',k.design,'var(--pink)']].map(([lbl,val,color])=>`
+        <div class="bar-row">
+          <span class="bar-label">${lbl}</span>
+          <div class="bar-track">
+            ${val>0?`<div class="bar-fill" style="width:${Math.round(val/Math.max(k.total,1)*100)}%;background:${color}"><span>${val}</span></div>`:`<span class="bar-zero">0</span>`}
+          </div>
+        </div>`).join('')}
+      </div>
+      <h3 style="margin-bottom:10px">By Priority</h3>
+      <div class="bar-chart">
+        ${[['🔴 High',DB.tasks.filter(t=>t.priority==='High').length,'var(--p-high-fg)'],['🟡 Medium',DB.tasks.filter(t=>t.priority==='Medium').length,'var(--p-med-fg)'],['🟢 Low',DB.tasks.filter(t=>t.priority==='Low').length,'var(--p-low-fg)']].map(([lbl,val,color])=>`
+        <div class="bar-row">
+          <span class="bar-label">${lbl}</span>
+          <div class="bar-track">
+            ${val>0?`<div class="bar-fill" style="width:${Math.round(val/Math.max(k.total,1)*100)}%;background:${color}"><span>${val}</span></div>`:`<span class="bar-zero">0</span>`}
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="dash-panel">
+      <h3>⚠️ Overdue Tasks (${overdue.length})</h3>
+      ${overdue.length?`<table><thead><tr><th>Task</th><th>Due</th><th>Status</th></tr></thead><tbody>
+        ${overdue.map(t=>`<tr onclick="openEdit(${t.id},'task')" class="overdue-row">
+          <td class="td-title">${t.title}</td>
+          <td style="color:#F87171;font-size:12px">${t.dueDate}</td>
+          <td>${statusBadge(t.status)}</td>
+        </tr>`).join('')}
+      </tbody></table>`:`<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">✅ No overdue tasks!</div>`}
+    </div>
+    <div class="dash-panel">
+      <h3>📅 Due This Week (${upcoming.length})</h3>
+      ${upcoming.length?`<table><thead><tr><th>Task</th><th>Due</th><th>Priority</th></tr></thead><tbody>
+        ${upcoming.map(t=>`<tr onclick="openEdit(${t.id},'task')">
+          <td class="td-title">${t.title}</td>
+          <td style="color:var(--amber);font-size:12px">${t.dueDate}</td>
+          <td>${priorityBadge(t.priority)}</td>
+        </tr>`).join('')}
+      </tbody></table>`:`<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">No tasks due this week.</div>`}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// RENDER MONTHLY VIEW
+// ═══════════════════════════════════════════
+function renderMonthly(){
+  const yearData=getMonthlyData(activeYear);
+  const monthTasks=activeMonth==='all'?null:DB.tasks.filter(t=>{
+    const d=getTaskDate(t);if(!d)return false;
+    const dt=new Date(d);return dt.getFullYear()===activeYear&&dt.getMonth()===activeMonth;
+  });
+
+  const monthCards=MONTHS.map((mName,mi)=>{
+    const tasks=DB.tasks.filter(t=>{
+      const d=getTaskDate(t);if(!d)return false;
+      const dt=new Date(d);return dt.getFullYear()===activeYear&&dt.getMonth()===mi;
+    });
+    const k=getKPIs(tasks);
+    const donePct=k.total?Math.round(k.done/k.total*100):0;
+    const isActive=activeMonth===mi;
+    return`<div class="mo-card ${isActive?'mo-active':''}" onclick="setMonth(${mi})">
+      <div class="mo-month">${mName} ${activeYear}<span>${k.total} task${k.total!==1?'s':''}</span></div>
+      ${k.total>0?`
+      <div class="mo-stats">
+        <div class="mo-stat" style="background:var(--s-done-bg)"><div class="mo-stat-val" style="color:var(--s-done-fg)">${k.done}</div><div class="mo-stat-lbl" style="color:var(--s-done-fg)">Done</div></div>
+        <div class="mo-stat" style="background:var(--s-prog-bg)"><div class="mo-stat-val" style="color:var(--s-prog-fg)">${k.prog}</div><div class="mo-stat-lbl" style="color:var(--s-prog-fg)">In Progress</div></div>
+        <div class="mo-stat" style="background:var(--s-pend-bg)"><div class="mo-stat-val" style="color:var(--s-pend-fg)">${k.pend}</div><div class="mo-stat-lbl" style="color:var(--s-pend-fg)">Pending</div></div>
+        <div class="mo-stat" style="background:var(--teal-dk)"><div class="mo-stat-val" style="color:var(--teal)">${k.events}</div><div class="mo-stat-lbl" style="color:var(--teal)">Events</div></div>
+      </div>
+      <div class="mo-bar"><div class="mo-bar-fill" style="width:${donePct}%"></div></div>`
+      :`<div style="color:var(--text3);font-size:12px">No tasks this month</div>`}
+    </div>`;
+  }).join('');
+
+  const selectedTasks=monthTasks||DB.tasks.filter(t=>{
+    const d=getTaskDate(t);if(!d)return true;
+    const dt=new Date(d);return dt.getFullYear()===activeYear;
+  });
+
+  return`
+  <div class="section-header" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <h2>📅 Monthly Overview — ${activeYear}</h2>
+      <select class="year-select" onchange="activeYear=parseInt(this.value);renderContent()" style="font-size:13px;padding:5px 10px">
+        ${getAvailableYears().map(y=>`<option value="${y}"${y===activeYear?'selected':''}>${y}</option>`).join('')}
+      </select>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="setMonth('all')">Show All Months</button>
+  </div>
+  <div class="month-overview">${monthCards}</div>
+  ${activeMonth!=='all'?`
+  <div class="section-header" style="margin-top:4px">
+    <h2>${MONTHS[activeMonth]} ${activeYear} — ${selectedTasks.length} task${selectedTasks.length!==1?'s':''}</h2>
+  </div>
+  ${renderTaskRows(selectedTasks,t=>t===null?'<th>Category</th><th>Due Date</th>':`<td>${catBadge(t.category)}</td><td style="font-size:12px;color:var(--text2)">${t.dueDate||'—'}</td>`,'',false)}`:''}
+  `;
+}
+
+// ═══════════════════════════════════════════
+// GENERIC TASK TABLE
+// ═══════════════════════════════════════════
+function renderTaskRows(tasks,extraCols,tbodyId,withFilters=true){
+  const sid='s'+Math.random().toString(36).slice(2,7);
+  const fid='f'+Math.random().toString(36).slice(2,7);
+  const tid=tbodyId||'t'+Math.random().toString(36).slice(2,7);
+
+  if(withFilters){
+    setTimeout(()=>{
+      const si=document.getElementById(sid),fi=document.getElementById(fid);
+      if(si)si.addEventListener('input',()=>filterTable(tid,si.value,fi?fi.value:'all'));
+      if(fi)fi.addEventListener('change',()=>filterTable(tid,document.getElementById(sid)?.value||'',fi.value));
+    },40);
+  }
+
+  const today=new Date();today.setHours(0,0,0,0);
+  const rows=tasks.map((t,i)=>{
+    const isOverdue=!['Completed','Cancelled','Printed'].includes(t.status)&&t.dueDate&&new Date(t.dueDate)<today;
+    return`<tr class="${isOverdue?'overdue-row':''}" data-status="${t.status}" data-search="${(t.title+t.desc+t.assignedTo).toLowerCase()}" onclick="openEdit(${t.id},'task')">
+      <td class="td-num">${i+1}</td>
+      <td><div class="td-title">${t.title}${isOverdue?'<span style="color:#F87171;font-size:10px;margin-left:6px">OVERDUE</span>':''}</div><div class="td-desc">${t.desc||''}</div></td>
+      ${extraCols(t)}
+      <td>${priorityBadge(t.priority)}</td>
+      <td>${statusBadge(t.status)}</td>
+      <td style="color:var(--text2);white-space:nowrap;font-size:12px">${t.dueDate||'—'}</td>
+      <td style="color:var(--text2);font-size:12px">${t.assignedTo||'—'}</td>
+      <td><div class="row-actions">
+        <button class="row-btn" onclick="event.stopPropagation();openEdit(${t.id},'task')">Edit</button>
+        <button class="row-btn del" onclick="event.stopPropagation();deleteTask(${t.id})">Del</button>
+      </div></td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="9"><div class="empty-state"><div class="e-icon">📭</div><p>No tasks found.</p><button class="btn btn-primary btn-sm" onclick="openAdd()">+ Add Task</button></div></td></tr>`;
+
+  if(!withFilters) return`<div class="table-wrap"><table><thead><tr><th>#</th><th>Task</th>${extraCols(null)}<th>Priority</th><th>Status</th><th>Due Date</th><th>Assigned</th><th></th></tr></thead><tbody id="${tid}">${rows}</tbody></table></div>`;
+
+  return`
+  <div class="filters-row" style="margin-bottom:12px">
+    <div class="search-box"><span style="color:var(--text3)">🔍</span><input id="${sid}" placeholder="Search…"/></div>
+    <select class="filter-select" id="${fid}">
+      <option value="all">All Status</option>
+      <option>Pending</option><option>In Progress</option><option>Completed</option><option>Cancelled</option>
+    </select>
+    <span style="font-size:12px;color:var(--text3)">${tasks.length} task${tasks.length!==1?'s':''}</span>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>#</th><th>Task</th>${extraCols(null)}<th>Priority</th><th>Status</th><th>Due Date</th><th>Assigned</th><th></th></tr></thead><tbody id="${tid}">${rows}</tbody></table></div>`;
+}
+
+function filterTable(tid,search,status){
+  document.querySelectorAll(`#${tid} tr[data-status]`).forEach(r=>{
+    const ms=!search||r.dataset.search.includes(search.toLowerCase());
+    const mf=status==='all'||r.dataset.status===status;
+    r.style.display=ms&&mf?'':'none';
+  });
+}
+
+// ═══════════════════════════════════════════
+// TAB RENDERS
+// ═══════════════════════════════════════════
+function filteredTasks(cat){
+  let tasks=cat?DB.tasks.filter(t=>t.category===cat):DB.tasks;
+  return tasks.filter(matchesMonthFilter);
+}
+
+function renderAll(){
+  const tasks=filteredTasks(null);
+  return`<div class="section-header"><h2>📋 All Tasks</h2><button class="btn btn-primary btn-sm" onclick="openAdd()">+ Add Task</button></div>
+  <div class="section-desc">Master list. Use the month filter above to view tasks by month.</div>
+  ${renderTaskRows(tasks,t=>t===null?'<th>Category</th>':`<td>${catBadge(t.category)}</td>`)}`;
+}
+function renderEvents(){
+  const tasks=filteredTasks('Event');
+  return`<div class="section-header"><h2>🎉 Events</h2><button class="btn btn-primary btn-sm" onclick="openAdd('events')">+ Add Event</button></div>
+  <div class="section-desc">Event planning tasks. Record venue, pax, budget and link design jobs in Design & Print.</div>
+  ${renderTaskRows(tasks,t=>t===null?'<th>Venue</th><th>Event Date</th>':`<td style="font-size:12px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.venue||'—'}</td><td style="font-size:12px;color:var(--text2);white-space:nowrap">${t.eventDate||'—'}</td>`)}`;
+}
+function renderSocial(){
+  const tasks=filteredTasks('Social Media');
+  return`<div class="section-header"><h2>📱 Social Media & Video</h2><button class="btn btn-primary btn-sm" onclick="openAdd('social')">+ Add Content</button></div>
+  <div class="section-desc">Posts, reels, carousels, stories and video productions. Filter by month to plan your content calendar.</div>
+  ${renderTaskRows(tasks,t=>t===null?'<th>Content Type</th><th>Platform</th>':`<td>${t.contentType?typeBadge(t.contentType,'coral'):''}</td><td style="font-size:12px;color:var(--text2)">${t.platform||'—'}</td>`)}`;
+}
+function renderDesign(){
+  const tasks=filteredTasks('Design & Print');
+  return`<div class="section-header"><h2>🎨 Design & Print</h2><button class="btn btn-primary btn-sm" onclick="openAdd('design')">+ Add Design Job</button></div>
+  <div class="section-desc">All design jobs and print materials. Link vendor names to print jobs.</div>
+  ${renderTaskRows(tasks,t=>t===null?'<th>Design Type</th><th>Vendor</th>':`<td>${t.designType?typeBadge(t.designType,'pink'):''}</td><td style="font-size:12px;color:var(--text2)">${t.vendor||'—'}</td>`)}`;
+}
+
+function renderNotes(){
+  const cards=DB.notes.map(n=>`
+    <div class="note-card" onclick="openEdit(${n.id},'note')">
+      <div class="note-card-top"><div class="note-card-title">${n.note}</div>${n.done==='Yes'?'<span class="badge badge-done">Done</span>':''}</div>
+      <div class="note-card-body">${n.details||'No details added.'}</div>
+      <div class="note-card-footer">${typeBadge(n.type,'blue')} ${priorityBadge(n.priority)} ${n.followUpDate?`<span style="font-size:11px;color:var(--text3)">📅 ${n.followUpDate}</span>`:''}</div>
+    </div>`).join('')||`<div class="empty-state" style="grid-column:1/-1"><div class="e-icon">📒</div><p>No notes yet.</p><button class="btn btn-primary btn-sm" onclick="openAddNote()">+ Add Note</button></div>`;
+  return`<div class="section-header"><h2>📒 Notes & To-Do</h2><button class="btn btn-primary btn-sm" onclick="openAddNote()">+ Add Note</button></div>
+  <div class="section-desc">Freeform scratch pad for ideas, reminders, and follow-ups — things not ready to be formal tasks yet.</div>
+  <div class="notes-grid">${cards}</div>`;
+}
+
+function renderVendors(){
+  const cards=DB.vendors.map(v=>`
+    <div class="vendor-card" onclick="openEdit(${v.id},'vendor')">
+      <div class="vendor-name">${v.name}</div><div class="vendor-service">${v.service}</div>
+      <div class="vendor-info-row"><span>Contact</span><span>${v.contact||'—'}</span></div>
+      <div class="vendor-info-row"><span>Phone</span><span>${v.phone||'—'}</span></div>
+      <div class="vendor-info-row"><span>Price</span><span>${v.priceRange||'—'}</span></div>
+      <div class="vendor-info-row"><span>Rating</span><span>${v.rating||'—'}</span></div>
+      <div class="vendor-info-row"><span>Last Used</span><span>${v.lastUsed||'—'}</span></div>
+    </div>`).join('')||`<div class="empty-state" style="grid-column:1/-1"><div class="e-icon">🏭</div><p>No vendors yet.</p><button class="btn btn-primary btn-sm" onclick="openAddVendor()">+ Add Vendor</button></div>`;
+  return`<div class="section-header"><h2>🏭 Vendor Contacts</h2><button class="btn btn-primary btn-sm" onclick="openAddVendor()">+ Add Vendor</button></div>
+  <div class="section-desc">Directory of all vendors: printers, photographers, studios, suppliers.</div>
+  <div class="vendor-grid">${cards}</div>`;
+}
+
+// ═══════════════════════════════════════════
+// ROUTING
+// ═══════════════════════════════════════════
+function renderContent(){
+  const map={dashboard:renderDashboard,monthly:renderMonthly,all:renderAll,events:renderEvents,social:renderSocial,design:renderDesign,notes:renderNotes,vendors:renderVendors};
+  document.getElementById('mainContent').innerHTML=map[currentTab]();
+}
+function render(){buildMonthBar();renderContent();}
+
+document.getElementById('mainTabs').addEventListener('click',e=>{
+  const tab=e.target.closest('[data-tab]');if(!tab)return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  currentTab=tab.dataset.tab;
+  if(['dashboard','monthly','notes','vendors'].includes(currentTab)){activeMonth='all';}
+  render();
+});
+
+// ═══════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════
+let editingId=null,editingType=null;
+function openModal(title,body,footer){
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalBody').innerHTML=body;
+  document.getElementById('modalFooter').innerHTML=footer;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal(){document.getElementById('modalOverlay').classList.add('hidden');editingId=null;editingType=null;}
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+
+function currentCat(){return{events:'Event',social:'Social Media',design:'Design & Print'}[currentTab]||'Event';}
+function gv(id){const e=document.getElementById(id);return e?e.value:'';}
+
+function taskForm(t={}){
+  return`<div class="form-grid">
+    <div class="form-group form-full"><label>Task Title *</label><input id="f_title" value="${t.title||''}" placeholder="e.g. Company Annual Dinner Poster"/></div>
+    <div class="form-group form-full"><label>Description</label><textarea id="f_desc">${t.desc||''}</textarea></div>
+    <div class="form-group"><label>Category</label><select id="f_cat" onchange="refreshCatFields()">
+      <option ${t.category==='Event'?'selected':''}>Event</option>
+      <option ${t.category==='Social Media'?'selected':''}>Social Media</option>
+      <option ${t.category==='Design & Print'?'selected':''}>Design & Print</option>
+    </select></div>
+    <div class="form-group"><label>Priority</label><select id="f_pri">
+      ${['High','Medium','Low'].map(o=>`<option ${(t.priority||'Medium')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Status</label><select id="f_status">
+      ${['Pending','In Progress','Completed','Cancelled','Design Approved','Sent to Vendor','Printed'].map(o=>`<option ${(t.status||'Pending')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Assigned To</label><input id="f_assigned" value="${t.assignedTo||''}" placeholder="Name"/></div>
+    <div class="form-group"><label>Start Date</label><input id="f_start" type="date" value="${t.startDate||''}"/></div>
+    <div class="form-group"><label>Due Date</label><input id="f_due" type="date" value="${t.dueDate||''}"/></div>
+    <div class="form-group"><label>Completed On</label><input id="f_completed" type="date" value="${t.completedOn||''}"/></div>
+    <div class="form-group"><label>Linked Event / Campaign</label><input id="f_linked" value="${t.linkedTo||''}" placeholder="e.g. Tech Expo 2026"/></div>
+    <div class="form-group form-full"><label>Attachments</label><input id="f_attach" value="${t.attachments||''}" placeholder="filename.pdf, filename.ai"/></div>
+    <div id="catFields" class="form-grid form-full" style="grid-column:1/-1;padding:0"></div>
+    <div class="form-group form-full"><label>Details & Notes</label><textarea id="f_notes">${t.notes||''}</textarea></div>
+    <div class="form-group"><label>Google Cal ID</label><input id="f_calid" value="${t.calId||''}" placeholder="event@google.com"/></div>
+    <div class="form-group"><label>Cal Sync</label><select id="f_calsync">
+      ${['Not Synced','Synced','Error'].map(o=>`<option ${(t.calSync||'Not Synced')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+  </div>`;
+}
+
+function refreshCatFields(){
+  const cat=gv('f_cat'),el=document.getElementById('catFields');if(!el)return;
+  const t=editingId?DB.tasks.find(x=>x.id===editingId)||{}:{};
+  if(cat==='Event')el.innerHTML=`
+    <div class="form-group"><label>Event Date</label><input id="f_eventDate" type="date" value="${t.eventDate||''}"/></div>
+    <div class="form-group"><label>Venue / Location</label><input id="f_venue" value="${t.venue||''}"/></div>
+    <div class="form-group"><label>Expected Pax</label><input id="f_pax" value="${t.pax||''}" placeholder="200"/></div>
+    <div class="form-group"><label>Budget (RM)</label><input id="f_budget" value="${t.budget||''}" placeholder="15000"/></div>`;
+  else if(cat==='Social Media')el.innerHTML=`
+    <div class="form-group"><label>Content Type</label><select id="f_contentType">
+      ${['Static Post','Reel / Video','Story','Carousel','Live'].map(o=>`<option ${t.contentType===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Platform</label><input id="f_platform" value="${t.platform||''}" placeholder="Instagram, TikTok…"/></div>
+    <div class="form-group"><label>Publish Date</label><input id="f_publishDate" type="date" value="${t.publishDate||''}"/></div>`;
+  else if(cat==='Design & Print')el.innerHTML=`
+    <div class="form-group"><label>Design Type</label><select id="f_designType">
+      ${['Event Asset','Social Media Asset','Brochure','Flyer','Banner / Signage','Card','Other Print'].map(o=>`<option ${t.designType===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Dimensions / Specs</label><input id="f_dims" value="${t.dimensions||''}" placeholder="A4, 850x2000mm"/></div>
+    <div class="form-group"><label>Colour Mode</label><input id="f_colorMode" value="${t.colorMode||''}" placeholder="PDF CMYK"/></div>
+    <div class="form-group"><label>Print Qty</label><input id="f_printQty" value="${t.printQty||''}"/></div>
+    <div class="form-group"><label>Print Due Date</label><input id="f_printDue" type="date" value="${t.printDueDate||''}"/></div>
+    <div class="form-group"><label>Vendor Name</label><input id="f_vendor" value="${t.vendor||''}" placeholder="Print Pro KL"/></div>
+    <div class="form-group"><label>Vendor Confirmed</label><select id="f_vendorConf">
+      ${['TBC','Yes','No'].map(o=>`<option ${(t.vendorConfirmed||'TBC')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>`;
+  else el.innerHTML='';
+}
+
+function collectTask(){
+  const cat=gv('f_cat');
+  const base={title:gv('f_title').trim(),desc:gv('f_desc').trim(),category:cat,priority:gv('f_pri'),status:gv('f_status'),assignedTo:gv('f_assigned').trim(),startDate:gv('f_start'),dueDate:gv('f_due'),completedOn:gv('f_completed'),linkedTo:gv('f_linked').trim(),attachments:gv('f_attach').trim(),notes:gv('f_notes').trim(),calId:gv('f_calid').trim(),calSync:gv('f_calsync')};
+  if(cat==='Event')Object.assign(base,{eventDate:gv('f_eventDate'),venue:gv('f_venue'),pax:gv('f_pax'),budget:gv('f_budget')});
+  else if(cat==='Social Media')Object.assign(base,{contentType:gv('f_contentType'),platform:gv('f_platform'),publishDate:gv('f_publishDate')});
+  else if(cat==='Design & Print')Object.assign(base,{designType:gv('f_designType'),dimensions:gv('f_dims'),colorMode:gv('f_colorMode'),printQty:gv('f_printQty'),printDueDate:gv('f_printDue'),vendor:gv('f_vendor'),vendorConfirmed:gv('f_vendorConf')});
+  return base;
+}
+
+function openAdd(hint){
+  editingId=null;editingType='task';
+  const body=taskForm({category:hint?{events:'Event',social:'Social Media',design:'Design & Print'}[hint]||'Event':currentCat()});
+  openModal('Add Task',body,`<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveTask()">Save Task</button>`);
+  setTimeout(()=>refreshCatFields(),30);
+}
+function openEdit(id,type){
+  editingId=id;editingType=type;
+  if(type==='task'){
+    const t=DB.tasks.find(x=>x.id===id);if(!t)return;
+    openModal('Edit Task',taskForm(t),`<button class="btn btn-danger btn-sm" onclick="deleteTask(${id})">Delete</button><div style="flex:1"></div><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveTask(${id})">Save Changes</button>`);
+    setTimeout(()=>refreshCatFields(),30);
+  }else if(type==='note'){
+    const n=DB.notes.find(x=>x.id===id);if(!n)return;
+    openModal('Edit Note',noteForm(n),`<button class="btn btn-danger btn-sm" onclick="deleteNote(${id})">Delete</button><div style="flex:1"></div><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveNote(${id})">Save</button>`);
+  }else if(type==='vendor'){
+    const v=DB.vendors.find(x=>x.id===id);if(!v)return;
+    openModal('Edit Vendor',vendorForm(v),`<button class="btn btn-danger btn-sm" onclick="deleteVendor(${id})">Delete</button><div style="flex:1"></div><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveVendor(${id})">Save</button>`);
+  }
+}
+function openAddNote(){editingId=null;editingType='note';openModal('Add Note',noteForm(),`<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveNote()">Save Note</button>`);}
+function openAddVendor(){editingId=null;editingType='vendor';openModal('Add Vendor',vendorForm(),`<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveVendor()">Save Vendor</button>`);}
+
+function saveTask(id){
+  const d=collectTask();if(!d.title){showToast('Task title is required','error');return;}
+  if(id){const i=DB.tasks.findIndex(x=>x.id===id);if(i>-1)DB.tasks[i]={...DB.tasks[i],...d};}
+  else DB.tasks.push({id:DB.nextTaskId++,...d});
+  saveData();closeModal();render();showToast(id?'Task updated':'Task added','success');
+}
+function deleteTask(id){if(!confirm('Delete this task?'))return;DB.tasks=DB.tasks.filter(x=>x.id!==id);saveData();closeModal();render();showToast('Task deleted');}
+
+function noteForm(n={}){
+  return`<div class="form-grid">
+    <div class="form-group form-full"><label>Note / To-Do *</label><input id="fn_note" value="${n.note||''}" placeholder="e.g. Follow up with vendor"/></div>
+    <div class="form-group"><label>Type</label><select id="fn_type">${['Idea','Reminder','Follow-Up','Research','Meeting Note','Other'].map(o=>`<option ${n.type===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Priority</label><select id="fn_pri">${['High','Medium','Low'].map(o=>`<option ${(n.priority||'Medium')===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Status</label><select id="fn_status">${['Open','Done','Dropped'].map(o=>`<option ${(n.status||'Open')===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Related To</label><input id="fn_related" value="${n.relatedTo||''}" placeholder="Company Brochure…"/></div>
+    <div class="form-group"><label>Date Added</label><input id="fn_dateAdded" type="date" value="${n.dateAdded||new Date().toISOString().slice(0,10)}"/></div>
+    <div class="form-group"><label>Follow-Up Date</label><input id="fn_followUp" type="date" value="${n.followUpDate||''}"/></div>
+    <div class="form-group"><label>Done?</label><select id="fn_done"><option ${(n.done||'No')==='No'?'selected':''}>No</option><option ${n.done==='Yes'?'selected':''}>Yes</option></select></div>
+    <div class="form-group form-full"><label>Details</label><textarea id="fn_details">${n.details||''}</textarea></div>
+  </div>`;
+}
+function saveNote(id){
+  const d={note:gv('fn_note').trim(),type:gv('fn_type'),priority:gv('fn_pri'),status:gv('fn_status'),relatedTo:gv('fn_related').trim(),dateAdded:gv('fn_dateAdded'),followUpDate:gv('fn_followUp'),done:gv('fn_done'),details:gv('fn_details').trim()};
+  if(!d.note){showToast('Note text required','error');return;}
+  if(id){const i=DB.notes.findIndex(x=>x.id===id);if(i>-1)DB.notes[i]={...DB.notes[i],...d};}
+  else DB.notes.push({id:DB.nextNoteId++,...d});
+  saveData();closeModal();render();showToast(id?'Note updated':'Note added','success');
+}
+function deleteNote(id){if(!confirm('Delete this note?'))return;DB.notes=DB.notes.filter(x=>x.id!==id);saveData();closeModal();render();showToast('Note deleted');}
+
+function vendorForm(v={}){
+  return`<div class="form-grid">
+    <div class="form-group form-full"><label>Vendor Name *</label><input id="fv_name" value="${v.name||''}" placeholder="Print Pro KL"/></div>
+    <div class="form-group"><label>Contact Person</label><input id="fv_contact" value="${v.contact||''}"/></div>
+    <div class="form-group"><label>Service Type</label><select id="fv_service">${['Printing','Photography','Videography','Graphic Design','Event Venue','Catering','AV & Tech','Logistics','Other'].map(o=>`<option ${v.service===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Phone</label><input id="fv_phone" value="${v.phone||''}" placeholder="012-345 6789"/></div>
+    <div class="form-group"><label>Email</label><input id="fv_email" value="${v.email||''}"/></div>
+    <div class="form-group"><label>Website / IG</label><input id="fv_web" value="${v.website||''}"/></div>
+    <div class="form-group form-full"><label>Address</label><input id="fv_addr" value="${v.address||''}"/></div>
+    <div class="form-group"><label>Price Range</label><input id="fv_price" value="${v.priceRange||''}" placeholder="RM0.80–2.50/pcs"/></div>
+    <div class="form-group"><label>Rating</label><select id="fv_rating">${['⭐⭐⭐⭐⭐','⭐⭐⭐⭐','⭐⭐⭐','⭐⭐','⭐'].map(o=>`<option ${v.rating===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Last Used</label><input id="fv_lastUsed" type="date" value="${v.lastUsed||''}"/></div>
+    <div class="form-group"><label>Used For</label><input id="fv_usedFor" value="${v.usedFor||''}"/></div>
+    <div class="form-group"><label>Payment Terms</label><input id="fv_payment" value="${v.paymentTerms||''}" placeholder="50% deposit"/></div>
+    <div class="form-group form-full"><label>Notes</label><textarea id="fv_notes">${v.notes||''}</textarea></div>
+  </div>`;
+}
+function saveVendor(id){
+  const d={name:gv('fv_name').trim(),contact:gv('fv_contact').trim(),service:gv('fv_service'),phone:gv('fv_phone').trim(),email:gv('fv_email').trim(),website:gv('fv_web').trim(),address:gv('fv_addr').trim(),priceRange:gv('fv_price').trim(),rating:gv('fv_rating'),lastUsed:gv('fv_lastUsed'),usedFor:gv('fv_usedFor').trim(),paymentTerms:gv('fv_payment').trim(),notes:gv('fv_notes').trim()};
+  if(!d.name){showToast('Vendor name required','error');return;}
+  if(id){const i=DB.vendors.findIndex(x=>x.id===id);if(i>-1)DB.vendors[i]={...DB.vendors[i],...d};}
+  else DB.vendors.push({id:DB.nextVendorId++,...d});
+  saveData();closeModal();render();showToast(id?'Vendor updated':'Vendor added','success');
+}
+function deleteVendor(id){if(!confirm('Delete this vendor?'))return;DB.vendors=DB.vendors.filter(x=>x.id!==id);saveData();closeModal();render();showToast('Vendor deleted');}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`toast t-${type} show`;
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+
+
+// ═══════════════════════════════════════════
+// EXCEL EXPORT — with analysis sheets
+// ═══════════════════════════════════════════
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+
+  // ── helper to style a sheet's header row ──
+  function styleSheet(ws,nCols){
+    // column widths
+    ws['!cols']=Array(nCols).fill({wch:18});
+    ws['!cols'][0]={wch:5};
+    ws['!cols'][1]={wch:28};
+  }
+
+  // ── 1. All Tasks ──
+  const TH=['#','Title','Description','Category','Priority','Status','Assigned To','Start Date','Due Date','Completed On','Linked To','Attachments','Notes','Cal ID','Cal Sync','Venue','Event Date','Pax','Budget','Content Type','Platform','Publish Date','Design Type','Dimensions','Colour Mode','Print Qty','Print Due','Vendor','Vendor Confirmed'];
+  const TR=DB.tasks.map((t,i)=>[i+1,t.title,t.desc,t.category,t.priority,t.status,t.assignedTo,t.startDate,t.dueDate,t.completedOn,t.linkedTo,t.attachments,t.notes,t.calId,t.calSync,t.venue||'',t.eventDate||'',t.pax||'',t.budget||'',t.contentType||'',t.platform||'',t.publishDate||'',t.designType||'',t.dimensions||'',t.colorMode||'',t.printQty||'',t.printDueDate||'',t.vendor||'',t.vendorConfirmed||'']);
+  const wsAll=XLSX.utils.aoa_to_sheet([TH,...TR]);
+  styleSheet(wsAll,TH.length);
+  XLSX.utils.book_append_sheet(wb,wsAll,'All Tasks');
+
+  // ── 2. Events ──
+  const EH=['#','Event Name','Description','Priority','Status','Assigned To','Event Date','Due Date','Completed On','Venue','Pax','Budget (RM)','Linked To','Attachments','Notes','Cal ID'];
+  const ER=DB.tasks.filter(t=>t.category==='Event').map((t,i)=>[i+1,t.title,t.desc,t.priority,t.status,t.assignedTo,t.eventDate,t.dueDate,t.completedOn,t.venue,t.pax,t.budget,t.linkedTo,t.attachments,t.notes,t.calId]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([EH,...ER]),'Events');
+
+  // ── 3. Social Media ──
+  const SH=['#','Title','Description','Content Type','Platform','Priority','Status','Assigned To','Publish Date','Due Date','Completed On','Linked Campaign','Notes','Attachments','Cal ID'];
+  const SR=DB.tasks.filter(t=>t.category==='Social Media').map((t,i)=>[i+1,t.title,t.desc,t.contentType,t.platform,t.priority,t.status,t.assignedTo,t.publishDate,t.dueDate,t.completedOn,t.linkedTo,t.notes,t.attachments,t.calId]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([SH,...SR]),'Social Media & Video');
+
+  // ── 4. Design & Print ──
+  const DH=['#','Job Title','Description','Design Type','Priority','Status','Assigned To','Linked To','Design Due','Print Due','Dimensions','Colour Mode','Print Qty','Vendor','Vendor Confirmed','Notes'];
+  const DR=DB.tasks.filter(t=>t.category==='Design & Print').map((t,i)=>[i+1,t.title,t.desc,t.designType,t.priority,t.status,t.assignedTo,t.linkedTo,t.dueDate,t.printDueDate,t.dimensions,t.colorMode,t.printQty,t.vendor,t.vendorConfirmed,t.notes]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([DH,...DR]),'Design & Print');
+
+  // ── 5. Notes ──
+  const NH=['#','Note / To-Do','Type','Priority','Status','Related To','Date Added','Follow-Up Date','Done?','Details'];
+  const NR=DB.notes.map((n,i)=>[i+1,n.note,n.type,n.priority,n.status,n.relatedTo,n.dateAdded,n.followUpDate,n.done,n.details]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([NH,...NR]),'Notes & To-Do');
+
+  // ── 6. Vendors ──
+  const VH=['#','Vendor Name','Contact','Service','Phone','Email','Address','Website','Price Range','Rating','Last Used','Used For','Payment Terms','Notes'];
+  const VR=DB.vendors.map((v,i)=>[i+1,v.name,v.contact,v.service,v.phone,v.email,v.address,v.website,v.priceRange,v.rating,v.lastUsed,v.usedFor,v.paymentTerms,v.notes]);
+  XLSX.utils.book_append_sheet('Vendor Contacts',XLSX.utils.aoa_to_sheet([VH,...VR]));
+
+  // ── 7. Monthly Analysis ──
+  const years=[...new Set(DB.tasks.map(t=>{ const d=getTaskDate(t); return d?new Date(d).getFullYear():null; }).filter(Boolean))].sort();
+  const maRows=[['Monthly Task Analysis','','','','','','','',''],[''],
+    ['Month','Year','Total Tasks','Completed','In Progress','Pending','Cancelled','Completion %','Events','Social Media','Design & Print']
+  ];
+  years.forEach(yr=>{
+    for(let m=0;m<12;m++){
+      const tasks=DB.tasks.filter(t=>{
+        const d=getTaskDate(t);if(!d)return false;
+        const dt=new Date(d);return dt.getFullYear()===yr&&dt.getMonth()===m;
+      });
+      if(tasks.length===0)return;
+      const k=getKPIs(tasks);
+      maRows.push([
+        MONTHS[m],yr,k.total,k.done,k.prog,k.pend,k.canc,
+        k.total?Math.round(k.done/k.total*100)+'%':'0%',
+        k.events,k.social,k.design
+      ]);
+    }
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(maRows),'Monthly Analysis');
+
+  // ── 8. Summary Dashboard ──
+  const k=getKPIs(DB.tasks);
+  const today=new Date();today.setHours(0,0,0,0);
+  const overdue=DB.tasks.filter(t=>!['Completed','Cancelled','Printed'].includes(t.status)&&t.dueDate&&new Date(t.dueDate)<today);
+  const sdRows=[
+    ['WORKFLOW TASK MANAGER — SUMMARY REPORT',''],
+    ['Exported on',new Date().toLocaleDateString('en-MY',{day:'2-digit',month:'long',year:'numeric'})],
+    [''],
+    ['OVERALL SUMMARY',''],
+    ['Total Tasks',k.total],
+    ['Completed',k.done],
+    ['In Progress',k.prog],
+    ['Pending',k.pend],
+    ['Cancelled',k.canc],
+    ['Completion Rate',k.total?Math.round(k.done/k.total*100)+'%':'0%'],
+    ['Overdue Tasks',overdue.length],
+    [''],
+    ['BY CATEGORY',''],
+    ['Events',k.events],
+    ['Social Media & Video',k.social],
+    ['Design & Print',k.design],
+    [''],
+    ['BY PRIORITY',''],
+    ['High Priority',DB.tasks.filter(t=>t.priority==='High').length],
+    ['Medium Priority',DB.tasks.filter(t=>t.priority==='Medium').length],
+    ['Low Priority',DB.tasks.filter(t=>t.priority==='Low').length],
+    [''],
+    ['OVERDUE TASKS',''],
+    ['Title','Due Date','Category','Priority','Status'],
+    ...overdue.map(t=>[t.title,t.dueDate,t.category,t.priority,t.status]),
+    [''],
+    ['VENDOR SUMMARY',''],
+    ['Total Vendors',DB.vendors.length],
+    ...['Printing','Photography','Videography'].map(s=>[s+' vendors',DB.vendors.filter(v=>v.service===s).length]),
+    ['Other vendors',DB.vendors.filter(v=>!['Printing','Photography','Videography'].includes(v.service)).length],
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sdRows),'Summary Report');
+
+  const date=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`WorkTaskManager_${date}.xlsx`);
+  showToast('Excel exported — 8 sheets!','success');
+}
+
+
+
+
+// ═══════════════════════════════════════════════════════════
+// ASYNC SAVE/DELETE (override the sync versions)
+// ═══════════════════════════════════════════════════════════
+async function saveTask(id) {
+  const data = collectTask();
+  if (!data.title) { showToast('Task title is required','error'); return; }
+  setSyncStatus('syncing');
+  try {
+    if (id) {
+      const updated = await dbUpdateTask(id, data);
+      const i = DB.tasks.findIndex(x=>x.id===id);
+      if (i>-1) DB.tasks[i] = updated;
+    } else {
+      const added = await dbAddTask(data);
+      DB.tasks.push(added);
+    }
+    setSyncStatus('ok');
+    closeModal(); render(); showToast(id?'Task updated':'Task added','success');
+  } catch(e) {
+    setSyncStatus('err');
+    showToast('Save failed — check connection','error');
+    console.error(e);
+  }
+}
+
+async function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  setSyncStatus('syncing');
+  try {
+    await dbDeleteTask(id);
+    DB.tasks = DB.tasks.filter(x=>x.id!==id);
+    setSyncStatus('ok');
+    closeModal(); render(); showToast('Task deleted');
+  } catch(e) { setSyncStatus('err'); showToast('Delete failed','error'); }
+}
+
+async function saveNote(id) {
+  const d = { note:gv('fn_note').trim(), type:gv('fn_type'), priority:gv('fn_pri'),
+    status:gv('fn_status'), relatedTo:gv('fn_related').trim(), dateAdded:gv('fn_dateAdded'),
+    followUpDate:gv('fn_followUp'), done:gv('fn_done'), details:gv('fn_details').trim() };
+  if (!d.note) { showToast('Note text required','error'); return; }
+  setSyncStatus('syncing');
+  try {
+    if (id) {
+      const updated = await dbUpdateNote(id, d);
+      const i = DB.notes.findIndex(x=>x.id===id); if(i>-1) DB.notes[i]=updated;
+    } else {
+      DB.notes.push(await dbAddNote(d));
+    }
+    setSyncStatus('ok');
+    closeModal(); render(); showToast(id?'Note updated':'Note added','success');
+  } catch(e) { setSyncStatus('err'); showToast('Save failed','error'); console.error(e); }
+}
+
+async function deleteNote(id) {
+  if (!confirm('Delete this note?')) return;
+  try { await dbDeleteNote(id); DB.notes=DB.notes.filter(x=>x.id!==id); closeModal(); render(); showToast('Note deleted'); }
+  catch(e) { showToast('Delete failed','error'); }
+}
+
+async function saveVendor(id) {
+  const d = { name:gv('fv_name').trim(), contact:gv('fv_contact').trim(), service:gv('fv_service'),
+    phone:gv('fv_phone').trim(), email:gv('fv_email').trim(), website:gv('fv_web').trim(),
+    address:gv('fv_addr').trim(), priceRange:gv('fv_price').trim(), rating:gv('fv_rating'),
+    lastUsed:gv('fv_lastUsed'), usedFor:gv('fv_usedFor').trim(),
+    paymentTerms:gv('fv_payment').trim(), notes:gv('fv_notes').trim() };
+  if (!d.name) { showToast('Vendor name required','error'); return; }
+  setSyncStatus('syncing');
+  try {
+    if (id) {
+      const updated = await dbUpdateVendor(id, d);
+      const i = DB.vendors.findIndex(x=>x.id===id); if(i>-1) DB.vendors[i]=updated;
+    } else {
+      DB.vendors.push(await dbAddVendor(d));
+    }
+    setSyncStatus('ok');
+    closeModal(); render(); showToast(id?'Vendor updated':'Vendor added','success');
+  } catch(e) { setSyncStatus('err'); showToast('Save failed','error'); console.error(e); }
+}
+
+async function deleteVendor(id) {
+  if (!confirm('Delete this vendor?')) return;
+  try { await dbDeleteVendor(id); DB.vendors=DB.vendors.filter(x=>x.id!==id); closeModal(); render(); showToast('Vendor deleted'); }
+  catch(e) { showToast('Delete failed','error'); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONFIG SCREEN
+// ═══════════════════════════════════════════════════════════
+function showConfigScreen() {
+  document.getElementById('configScreen').style.display='flex';
+}
+function hideConfigScreen() {
+  document.getElementById('configScreen').style.display='none';
+}
+async function applyConfig() {
+  const url = document.getElementById('cfg_url').value.trim();
+  const key = document.getElementById('cfg_key').value.trim();
+  if (!url || !key) { showToast('Both fields are required','error'); return; }
+  if (!url.startsWith('https://')) { showToast('URL must start with https://','error'); return; }
+  saveConfig(url, key);
+  SUPA_URL = url; SUPA_KEY = key;
+  hideConfigScreen();
+  await loadAll();
+  render();
+}
+function clearConfig() {
+  if (!confirm('Clear credentials and reset?')) return;
+  localStorage.removeItem(CONFIG_KEY);
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(async function init() {
+  const cfg = getConfig();
+  if (!cfg) {
+    showConfigScreen();
+    return;
+  }
+  SUPA_URL = cfg.url;
+  SUPA_KEY = cfg.key;
+  await loadAll();
+  render();
+})();
+
+
+// ═══════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════
+function toggleTheme(){
+  const isLight=document.body.classList.toggle('light');
+  const btn=document.getElementById('themeToggle');
+  btn.textContent=isLight?'🌑':'🌙';
+  btn.title=isLight?'Switch to dark mode':'Switch to light mode';
+  localStorage.setItem('wfm_theme',isLight?'light':'dark');
+}
+// apply saved theme on load
+(function(){
+  const saved=localStorage.getItem('wfm_theme');
+  if(saved==='light'){
+    document.body.classList.add('light');
+    // update button after DOM ready
+    document.addEventListener('DOMContentLoaded',function(){
+      const btn=document.getElementById('themeToggle');
+      if(btn){btn.textContent='🌑';btn.title='Switch to dark mode';}
+    });
+  }
+})();
+
+</script>
+</body>
+</html>
