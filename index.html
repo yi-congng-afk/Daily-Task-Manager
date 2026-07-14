@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YCTasks</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0F172A;--surface:#1E293B;--surface2:#273549;--surface3:#2E3F56;
+  --border:#334155;--border2:#475569;
+  --text:#F1F5F9;--text2:#94A3B8;--text3:#64748B;
+  --teal:#14B8A6;--teal-d:#0F766E;--teal-dk:#042F2E;
+  --coral:#F97316;--coral-d:#C2410C;--coral-dk:#431407;
+  --pink:#EC4899;--pink-d:#BE185D;--pink-dk:#500724;
+  --blue:#3B82F6;--blue-d:#1D4ED8;--blue-dk:#1E3A5F;
+  --green:#22C55E;--green-d:#15803D;--green-dk:#052E16;
+  --amber:#F59E0B;--amber-d:#B45309;--amber-dk:#451a03;
+  --purple:#A78BFA;--purple-d:#6D28D9;--purple-dk:#2e1065;
+  --radius:10px;--radius-sm:6px;
+  --s-done-bg:#052E16;--s-done-fg:#4ADE80;
+  --s-prog-bg:#1E3A5F;--s-prog-fg:#60A5FA;
+  --s-pend-bg:#422006;--s-pend-fg:#FCD34D;
+  --s-canc-bg:#3B0764;--s-canc-fg:#C084FC;
+  --p-high-bg:#450A0A;--p-high-fg:#F87171;
+  --p-med-bg:#422006;--p-med-fg:#FCD34D;
+  --p-low-bg:#052E16;--p-low-fg:#4ADE80;
+}
+body.light{
+  --bg:#F1F5F9;--surface:#FFFFFF;--surface2:#F8FAFC;--surface3:#EFF6FF;
+  --border:#E2E8F0;--border2:#CBD5E1;
+  --text:#0F172A;--text2:#475569;--text3:#94A3B8;
+  --teal:#0F766E;--teal-d:#0D9488;--teal-dk:#CCFBF1;
+  --coral:#C2410C;--coral-d:#EA580C;--coral-dk:#FFEDD5;
+  --pink:#BE185D;--pink-d:#DB2777;--pink-dk:#FCE7F3;
+  --blue:#1D4ED8;--blue-d:#2563EB;--blue-dk:#DBEAFE;
+  --green:#15803D;--green-d:#16A34A;--green-dk:#DCFCE7;
+  --amber:#B45309;--amber-d:#D97706;--amber-dk:#FEF3C7;
+  --purple:#6D28D9;--purple-d:#7C3AED;--purple-dk:#EDE9FE;
+  --s-done-bg:#DCFCE7;--s-done-fg:#14532D;
+  --s-prog-bg:#DBEAFE;--s-prog-fg:#1E3A8A;
+  --s-pend-bg:#FEF3C7;--s-pend-fg:#78350F;
+  --s-canc-bg:#F3E8FF;--s-canc-fg:#4C1D95;
+  --p-high-bg:#FEE2E2;--p-high-fg:#7F1D1D;
+  --p-med-bg:#FEF3C7;--p-med-fg:#78350F;
+  --p-low-bg:#DCFCE7;--p-low-fg:#14532D;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;transition:background .2s,color .2s}
+/* TOP BAR */
+.topbar{display:flex;align-items:center;gap:8px;padding:0 20px;height:54px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.topbar-logo{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.5px;white-space:nowrap}
+.topbar-logo span{color:var(--teal)}
+.topbar-actions{margin-left:auto;display:flex;gap:6px;align-items:center;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--teal);color:#fff}.btn-primary:hover{background:var(--teal-d);transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-danger{background:#7F1D1D;color:#FCA5A5}.btn-danger:hover{background:#991B1B}
+.btn-sm{padding:5px 10px;font-size:12px}
+.theme-btn{background:transparent;border:1px solid var(--border2);color:var(--text2);width:32px;height:32px;border-radius:var(--radius-sm);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.theme-btn:hover{background:var(--surface2)}
+/* TABS */
+.tabs-wrap{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:0;overflow-x:auto;scrollbar-width:none}
+.tabs-wrap::-webkit-scrollbar{display:none}
+.tab{padding:12px 15px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;user-select:none}
+.tab:hover{color:var(--text2);background:var(--surface2)}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:600}
+/* MONTH BAR */
+.month-bar{display:flex;align-items:center;gap:10px;padding:8px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.month-bar-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+.month-pills{display:flex;gap:5px;flex-wrap:wrap;flex:1}
+.mpill{padding:3px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border2);color:var(--text3);transition:all .15s;white-space:nowrap}
+.mpill:hover{border-color:var(--teal);color:var(--teal)}.mpill.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.year-select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px 8px;color:var(--text);font-size:12px;outline:none;cursor:pointer}
+/* CONTENT */
+.content{padding:20px;max-width:1600px;margin:0 auto}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;transition:transform .15s,box-shadow .15s}
+.kpi-card:hover{transform:translateY(-2px)}
+.kpi-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.kpi-value{font-size:32px;font-weight:800;color:var(--text);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.kpi-card.k-done .kpi-value{color:var(--green)}.kpi-card.k-prog .kpi-value{color:var(--blue)}.kpi-card.k-pend .kpi-value{color:var(--amber)}.kpi-card.k-over .kpi-value{color:#F87171}
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.chart-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.chart-panel h3{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px}
+.bar-chart{display:flex;flex-direction:column;gap:7px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-label{font-size:11px;color:var(--text2);width:100px;flex-shrink:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:18px;background:var(--surface2);border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.bar-fill span{font-size:10px;font-weight:700;color:#fff}
+.bar-zero{font-size:10px;color:var(--text3);position:absolute;left:7px;top:50%;transform:translateY(-50%)}
+/* DASH */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dash-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.dash-panel h3{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px}
+.dash-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:var(--radius-sm);margin-bottom:3px}
+/* MONTH OVERVIEW */
+.month-overview{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-bottom:16px}
+.mo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s}
+.mo-card:hover{border-color:var(--teal);transform:translateY(-1px)}
+.mo-card.mo-active{border-color:var(--teal);background:var(--teal-dk)}
+.mo-month{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.mo-month span{font-size:10px;color:var(--text3);font-weight:400}
+.mo-stats{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mo-stat{border-radius:5px;padding:5px 7px;text-align:center}
+.mo-stat-val{font-size:15px;font-weight:700}.mo-stat-lbl{font-size:9px;margin-top:1px}
+.mo-bar{height:3px;border-radius:2px;margin-top:8px;background:var(--border);overflow:hidden}
+.mo-bar-fill{height:100%;border-radius:2px;background:var(--teal);transition:width .4s}
+/* TABLE */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.section-header h2{font-size:15px;font-weight:700}
+.filters-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.search-box{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 11px;transition:border-color .15s}
+.search-box:focus-within{border-color:var(--teal)}
+.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:13px;width:180px}
+.search-box input::placeholder{color:var(--text3)}
+.filter-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text);font-size:12px;outline:none;cursor:pointer;transition:border-color .15s}
+.filter-select:focus{border-color:var(--teal)}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--surface2);padding:9px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+td{padding:10px 13px;font-size:13px;color:var(--text);vertical-align:middle}
+.td-title{font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-desc{color:var(--text2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;margin-top:2px}
+.td-num{color:var(--text3);font-size:12px;width:32px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-state .e-icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:13px;margin-bottom:16px}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-done{background:var(--s-done-bg);color:var(--s-done-fg)}
+.badge-prog{background:var(--s-prog-bg);color:var(--s-prog-fg)}
+.badge-pend{background:var(--s-pend-bg);color:var(--s-pend-fg)}
+.badge-canc{background:var(--s-canc-bg);color:var(--s-canc-fg)}
+.badge-high{background:var(--p-high-bg);color:var(--p-high-fg)}
+.badge-med{background:var(--p-med-bg);color:var(--p-med-fg)}
+.badge-low{background:var(--p-low-bg);color:var(--p-low-fg)}
+.badge-teal{background:var(--teal-dk);color:var(--teal)}
+.badge-coral{background:var(--coral-dk);color:var(--coral)}
+.badge-pink{background:var(--pink-dk);color:var(--pink)}
+.badge-blue{background:var(--blue-dk);color:var(--blue)}
+.badge-purple{background:var(--purple-dk);color:var(--purple)}
+.badge-amber{background:var(--amber-dk);color:var(--amber)}
+/* PLATFORM PILLS */
+.platform-pills{display:flex;flex-wrap:wrap;gap:4px}
+.ppill{padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border2);color:var(--text2);transition:all .12s;user-select:none}
+.ppill:hover{border-color:var(--blue);color:var(--blue)}
+.ppill.sel{background:var(--blue-dk);color:#60A5FA;border-color:#3B82F6}
+.ppill.pf-fb.sel{background:#1E3A5F;color:#60A5FA;border-color:#3B82F6}
+.ppill.pf-ig.sel{background:#500724;color:#F9A8D4;border-color:#EC4899}
+.ppill.pf-tk.sel{background:#042F2E;color:#2DD4BF;border-color:#14B8A6}
+.ppill.pf-xhs.sel{background:#450A0A;color:#FCA5A5;border-color:#F87171}
+.ppill.pf-li.sel{background:#1E3A5F;color:#93C5FD;border-color:#3B82F6}
+.ppill.pf-all.sel{background:var(--teal-dk);color:var(--teal);border-color:var(--teal)}
+/* DIMENSION PILLS */
+.dim-pills{display:flex;flex-wrap:wrap;gap:4px}
+.dpill{padding:3px 9px;border-radius:var(--radius-sm);font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border2);color:var(--text2);transition:all .12s;user-select:none}
+.dpill:hover{border-color:var(--pink);color:var(--pink)}
+.dpill.sel{background:var(--pink-dk);color:var(--pink);border-color:var(--pink)}
+/* ROW ACTIONS */
+.row-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+tbody tr:hover .row-actions{opacity:1}
+.row-btn{background:var(--surface3);border:1px solid var(--border2);border-radius:4px;color:var(--text2);padding:3px 8px;font-size:11px;cursor:pointer;transition:all .1s}
+.row-btn:hover{color:var(--text);background:var(--surface)}
+.row-btn.del:hover{color:#F87171;border-color:#7F1D1D}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:700px;max-height:92vh;display:flex;flex-direction:column;animation:modalIn .18s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+.modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-header h3{font-size:15px;font-weight:700}
+.modal-header .modal-cat{font-size:11px;color:var(--text3);margin-left:8px;font-weight:400}
+.modal-close{background:var(--surface2);border:none;color:var(--text2);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-close:hover{background:var(--surface3);color:var(--text)}
+.modal-body{padding:18px 22px;overflow-y:auto;flex:1}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-shrink:0}
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--teal)}
+.form-group textarea{resize:vertical;min-height:68px}
+.form-group select option{background:var(--surface2)}
+.form-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.form-section-label{font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+/* NOTES */
+.notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.note-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px;cursor:pointer;transition:all .15s}
+.note-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.note-card.done-card{opacity:.6}
+.note-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px}
+.note-card-title{font-size:13px;font-weight:600;line-height:1.4}
+.note-card-body{font-size:12px;color:var(--text2);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.note-card-footer{margin-top:9px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+/* VENDORS */
+.vendor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.vendor-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px;cursor:pointer;transition:all .15s}
+.vendor-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.vendor-name{font-size:14px;font-weight:700;margin-bottom:3px}
+.vendor-service{font-size:11px;color:var(--teal);font-weight:600;margin-bottom:9px;text-transform:uppercase;letter-spacing:.4px}
+.vendor-info-row{display:flex;gap:6px;font-size:12px;color:var(--text2);margin-bottom:3px}
+.vendor-info-row span:first-child{color:var(--text3);min-width:66px;font-size:11px}
+/* SECTION DESC */
+.section-desc{font-size:12px;color:var(--text3);margin-bottom:12px;padding:9px 13px;background:var(--surface);border-radius:var(--radius-sm);border-left:3px solid var(--teal);line-height:1.5}
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 18px;font-size:13px;font-weight:500;z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;pointer-events:none;display:flex;align-items:center;gap:8px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.t-success{border-left:3px solid var(--green)}.toast.t-error{border-left:3px solid #F87171}
+/* OVERDUE */
+.overdue-row{background:#1c0a0a !important}.overdue-row:hover{background:#2a0f0f !important}
+body.light .overdue-row{background:#FEF2F2 !important}.body.light .overdue-row:hover{background:#FEE2E2 !important}
+/* PROGRESS BAR in modal */
+.prog-bar{height:6px;border-radius:3px;background:var(--border);margin-top:4px;overflow:hidden}
+.prog-bar-fill{height:100%;border-radius:3px;background:var(--teal);transition:width .3s}
+@media(max-width:768px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .dash-grid,.charts-row{grid-template-columns:1fr}
+  .form-grid{grid-column:1fr}
+  td,thead th{padding:7px 9px}
+  .month-overview{grid-template-columns:1fr 1fr}
+  .topbar-logo{font-size:14px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">YC<span>Tasks</span></div>
+  <div class="tabs-wrap" id="mainTabs" style="background:transparent;border:none;padding:0;margin-left:8px;flex:1;min-width:0">
+    <div class="tab active" data-tab="dashboard">📊 Dashboard</div>
+    <div class="tab" data-tab="monthly">📅 Monthly</div>
+    <div class="tab" data-tab="all">📋 All Tasks</div>
+    <div class="tab" data-tab="events">🎉 Events</div>
+    <div class="tab" data-tab="social">📱 Social & Video</div>
+    <div class="tab" data-tab="design">🎨 Design & Print</div>
+    <div class="tab" data-tab="notes">📒 Notes</div>
+    <div class="tab" data-tab="vendors">🏭 Vendors</div>
+  </div>
+  <div class="topbar-actions">
+    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportExcel()">⬇ Export</button>
+    <button class="btn btn-primary btn-sm" onclick="openAdd()">＋ Add Task</button>
+  </div>
+</div>
+
+<div class="month-bar" id="monthBar" style="display:none">
+  <span class="month-bar-label">Filter</span>
+  <select class="year-select" id="yearSelect" onchange="onYearChange()"></select>
+  <div class="month-pills" id="monthPills"></div>
+</div>
+
+<div class="content" id="mainContent"></div>
+
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:0">
+        <h3 id="modalTitle">Add Task</h3>
+        <span class="modal-cat" id="modalCat"></span>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// DATA — localStorage only
+// ═══════════════════════════════════════
+const STORE = 'yctasks_v1';
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const PLATFORMS = ['Facebook','Instagram','XiaoHongShu','TikTok','LinkedIn'];
+const DIMENSIONS = ['A4','A3','A2','A1','A5','F4','Letter','Square 1:1','Instagram Post','Instagram Story','Facebook Cover','Custom'];
+
+function defData(){
+  return{tasks:[
+    {id:1,title:'Company Annual Dinner',desc:'Full event planning & execution',category:'Event',priority:'High',status:'In Progress',assignedTo:'Ahmad',startDate:'2026-07-01',dueDate:'2026-07-20',completedOn:'',linkedTo:'',attachments:'venue_brief.pdf',notes:'Ballroom, 200 pax, RM15k.',calId:'',venue:'Grand Ballroom, KL',pax:'200',budget:'15000',eventDate:'2026-08-15'},
+    {id:2,title:'Raya Social Post',desc:'IG + FB Raya greeting',category:'Social Media',priority:'Medium',status:'Completed',assignedTo:'Priya',startDate:'2026-06-20',dueDate:'2026-06-30',completedOn:'2026-06-29',linkedTo:'Raya Campaign',attachments:'raya_brief.docx',notes:'Caption BM & EN.',calId:'',contentType:'Static Post',platforms:['Facebook','Instagram'],publishDate:'2026-06-30'},
+    {id:3,title:'Company Brochure',desc:'Annual company profile brochure',category:'Design & Print',priority:'High',status:'Pending',assignedTo:'Mei Ling',startDate:'2026-07-05',dueDate:'2026-07-25',completedOn:'',linkedTo:'',attachments:'brand_guidelines.ai',notes:'12pp, CMYK. Send to vendor.',calId:'',designType:'Brochure',dimensions:'A4',colorMode:'CMYK',printQty:'500',vendor:'Print Pro KL',vendorConfirmed:'No',printDueDate:'2026-07-28'},
+    {id:4,title:'Tech Expo Promo Reel',desc:'30s promo video for expo',category:'Social Media',priority:'High',status:'In Progress',assignedTo:'Priya',startDate:'2026-07-08',dueDate:'2026-07-18',completedOn:'',linkedTo:'Tech Expo 2026',attachments:'storyboard.pdf',notes:'1920x1080. VO + BG music.',calId:'',contentType:'Reel / Video',platforms:['Instagram','TikTok'],publishDate:'2026-07-20'},
+    {id:5,title:'Tech Expo Pull-up Banner',desc:'Pull-up banner for expo booth',category:'Design & Print',priority:'Medium',status:'Pending',assignedTo:'Mei Ling',startDate:'2026-07-10',dueDate:'2026-07-16',completedOn:'',linkedTo:'Tech Expo 2026',attachments:'expo_layout.pdf',notes:'850x2000mm. Print-ready PDF.',calId:'',designType:'Banner / Signage',dimensions:'Custom',colorMode:'CMYK',printQty:'2',vendor:'Mega Banner KL',vendorConfirmed:'No',printDueDate:'2026-07-18'},
+    {id:6,title:'Team Building Day',desc:'Q3 internal team building',category:'Event',priority:'Medium',status:'Pending',assignedTo:'Siti',startDate:'2026-07-05',dueDate:'2026-07-15',completedOn:'',linkedTo:'',attachments:'team_brief.docx',notes:'Transport arranged.',calId:'',venue:'Bukit Tinggi Resort',pax:'45',budget:'3500',eventDate:'2026-07-30'},
+    {id:7,title:'June Newsletter',desc:'Monthly email blast',category:'Social Media',priority:'Low',status:'Completed',assignedTo:'Priya',startDate:'2026-06-01',dueDate:'2026-06-28',completedOn:'2026-06-27',linkedTo:'',attachments:'',notes:'MailChimp. 3 sections.',calId:'',contentType:'Static Post',platforms:['Facebook'],publishDate:'2026-06-28'},
+    {id:8,title:'Raya Event Banner',desc:'Entrance banner for Raya open house',category:'Design & Print',priority:'High',status:'Completed',assignedTo:'Mei Ling',startDate:'2026-05-10',dueDate:'2026-05-20',completedOn:'2026-05-19',linkedTo:'Raya Open House',attachments:'raya_brand.ai',notes:'3mx1.5m. Full colour.',calId:'',designType:'Banner / Signage',dimensions:'Custom',colorMode:'CMYK',printQty:'2',vendor:'Mega Banner KL',vendorConfirmed:'Yes',printDueDate:'2026-05-20'},
+  ],
+  notes:[
+    {id:1,note:'Get quote from Print Pro KL for brochure',type:'Follow-Up',priority:'High',status:'Open',relatedTo:'Company Brochure',dateAdded:'2026-07-01',followUpDate:'2026-07-03',done:'No',details:'Call Ah Weng: 012-345 6789. Saddle-stitch A4 500pcs.'},
+    {id:2,note:'Idea: Raya throwback carousel for IG',type:'Idea',priority:'Low',status:'Open',relatedTo:'Social Media',dateAdded:'2026-07-01',followUpDate:'',done:'No',details:'Use last year photos. 5-slide carousel.'},
+    {id:3,note:'Follow up Ahmad on Annual Dinner rundown',type:'Follow-Up',priority:'High',status:'Open',relatedTo:'Annual Dinner',dateAdded:'2026-07-01',followUpDate:'2026-07-02',done:'No',details:'Need rundown before briefing AV team.'},
+  ],
+  vendors:[
+    {id:1,name:'Print Pro KL',contact:'Ah Weng',service:'Printing',phone:'012-345 6789',email:'ahweng@printprokl.com',address:'No 5, Jalan Imbi, KL',website:'printprokl.com',priceRange:'RM0.80–2.50/pcs',rating:'⭐⭐⭐⭐',lastUsed:'2026-06-15',usedFor:'Raya Flyers',paymentTerms:'30 days invoice',notes:'Fast turnaround. Good for bulk.'},
+    {id:2,name:'Studio Lens KL',contact:'Farah',service:'Photography',phone:'017-888 1234',email:'farah@studiolens.my',address:'Bangsar South, KL',website:'@studiolens_kl',priceRange:'RM800–2500/day',rating:'⭐⭐⭐⭐⭐',lastUsed:'2026-05-20',usedFor:'Annual Dinner',paymentTerms:'50% deposit',notes:'Includes basic editing.'},
+    {id:3,name:'PixelMotion Studio',contact:'Rizal',service:'Videography',phone:'011-2233 4455',email:'rizal@pixelmotion.com',address:'Petaling Jaya, Selangor',website:'pixelmotion.com',priceRange:'RM1500–5000/project',rating:'⭐⭐⭐⭐',lastUsed:'2026-04-10',usedFor:'Q2 Promo Video',paymentTerms:'50% deposit',notes:'1 revision included. Drone +RM500.'},
+    {id:4,name:'Mega Banner KL',contact:'Sally',service:'Printing',phone:'03-7890 1234',email:'sales@megabanner.my',address:'Shah Alam, Selangor',website:'megabanner.my',priceRange:'RM45–120/banner',rating:'⭐⭐⭐⭐',lastUsed:'2026-03-01',usedFor:'Event Banners',paymentTerms:'Full payment upfront',notes:'Large format. 2-day turnaround.'},
+  ],
+  nextTaskId:9,nextNoteId:4,nextVendorId:5};
+}
+
+let DB = (()=>{try{return JSON.parse(localStorage.getItem(STORE))||defData();}catch{return defData();}})();
+function save(){localStorage.setItem(STORE,JSON.stringify(DB));}
+
+// ═══════════════════════════════════════
+// FILTER STATE
+// ═══════════════════════════════════════
+let currentTab='dashboard', activeYear=new Date().getFullYear(), activeMonth='all';
+function getTaskDate(t){return t.dueDate||t.startDate||t.eventDate||t.publishDate||'';}
+function matchMonth(t){
+  if(activeMonth==='all')return true;
+  const d=getTaskDate(t);if(!d)return false;
+  const dt=new Date(d);return dt.getFullYear()===activeYear&&dt.getMonth()===activeMonth;
+}
+function availYears(){
+  const y=new Set([new Date().getFullYear(),new Date().getFullYear()-1,new Date().getFullYear()+1]);
+  DB.tasks.forEach(t=>{const d=getTaskDate(t);if(d)y.add(new Date(d).getFullYear());});
+  return[...y].sort((a,b)=>a-b);
+}
+
+// ═══════════════════════════════════════
+// MONTH BAR
+// ═══════════════════════════════════════
+function buildMonthBar(){
+  const bar=document.getElementById('monthBar');
+  const show=['all','events','social','design'].includes(currentTab);
+  bar.style.display=show?'flex':'none';
+  if(!show)return;
+  const ys=document.getElementById('yearSelect');
+  ys.innerHTML=availYears().map(y=>`<option value="${y}"${y===activeYear?'selected':''}>${y}</option>`).join('');
+  const counts=Array(12).fill(0);
+  DB.tasks.forEach(t=>{const d=getTaskDate(t);if(!d)return;const dt=new Date(d);if(dt.getFullYear()===activeYear)counts[dt.getMonth()]++;});
+  document.getElementById('monthPills').innerHTML=
+    `<span class="mpill${activeMonth==='all'?' active':''}" onclick="setMonth('all')">All</span>`+
+    MONTHS_S.map((m,i)=>`<span class="mpill${activeMonth===i?' active':''}" onclick="setMonth(${i})">${m}${counts[i]?`<b style="font-size:9px;margin-left:3px">${counts[i]}</b>`:''}</span>`).join('');
+}
+function setMonth(m){activeMonth=m;buildMonthBar();renderContent();}
+function onYearChange(){activeYear=parseInt(document.getElementById('yearSelect').value);buildMonthBar();renderContent();}
+
+// ═══════════════════════════════════════
+// BADGES & HELPERS
+// ═══════════════════════════════════════
+function sBadge(s){
+  const m={Completed:'done','In Progress':'prog',Pending:'pend',Cancelled:'canc','Design Approved':'done','Sent to Vendor':'prog',Printed:'done'};
+  return`<span class="badge badge-${m[s]||'pend'}">${s}</span>`;
+}
+function pBadge(p){return`<span class="badge badge-${p==='High'?'high':p==='Low'?'low':'med'}">${p}</span>`;}
+function cBadge(c){const m={'Event':'teal','Social Media':'coral','Design & Print':'pink'};return`<span class="badge badge-${m[c]||'blue'}">${c}</span>`;}
+function tBadge(t,c='blue'){return`<span class="badge badge-${c}">${t}</span>`;}
+function pfBadge(pf){
+  const m={Facebook:'#1877F2',Instagram:'#E1306C',TikTok:'#00F2EA',XiaoHongShu:'#FF2442',LinkedIn:'#0A66C2'};
+  const col=m[pf]||'#888';
+  return`<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;background:${col}18;color:${col};border:1px solid ${col}40">${pf}</span>`;
+}
+function gv(id){const e=document.getElementById(id);return e?e.value:'';}
+
+// ═══════════════════════════════════════
+// KPI
+// ═══════════════════════════════════════
+function kpis(tasks){
+  const today=new Date();today.setHours(0,0,0,0);
+  return{
+    total:tasks.length,
+    done:tasks.filter(x=>['Completed','Printed'].includes(x.status)).length,
+    prog:tasks.filter(x=>['In Progress','Design Approved','Sent to Vendor'].includes(x.status)).length,
+    pend:tasks.filter(x=>x.status==='Pending').length,
+    canc:tasks.filter(x=>x.status==='Cancelled').length,
+    over:tasks.filter(x=>!['Completed','Cancelled','Printed'].includes(x.status)&&x.dueDate&&new Date(x.dueDate)<today).length,
+    events:tasks.filter(x=>x.category==='Event').length,
+    social:tasks.filter(x=>x.category==='Social Media').length,
+    design:tasks.filter(x=>x.category==='Design & Print').length,
+  };
+}
+
+// ═══════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════
+function renderDashboard(){
+  const k=kpis(DB.tasks);
+  const today=new Date();today.setHours(0,0,0,0);
+  const overdue=DB.tasks.filter(t=>!['Completed','Cancelled','Printed'].includes(t.status)&&t.dueDate&&new Date(t.dueDate)<today);
+  const upcoming=DB.tasks.filter(t=>{
+    if(['Completed','Cancelled','Printed'].includes(t.status))return false;
+    const d=t.dueDate;if(!d)return false;
+    const diff=(new Date(d)-today)/86400000;return diff>=0&&diff<=7;
+  });
+  const maxMonth=Math.max(...Array.from({length:12},(_,m)=>DB.tasks.filter(t=>{const d=getTaskDate(t);if(!d)return false;const dt=new Date(d);return dt.getFullYear()===activeYear&&dt.getMonth()===m;}).length),1);
+  const completionRate=k.total?Math.round(k.done/k.total*100):0;
+  return`
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Total Tasks</div><div class="kpi-value">${k.total}</div><div class="kpi-sub">all categories</div></div>
+    <div class="kpi-card k-done"><div class="kpi-label">Completed</div><div class="kpi-value">${k.done}</div><div class="kpi-sub">${completionRate}% completion rate</div></div>
+    <div class="kpi-card k-prog"><div class="kpi-label">In Progress</div><div class="kpi-value">${k.prog}</div><div class="kpi-sub">active right now</div></div>
+    <div class="kpi-card k-over"><div class="kpi-label">Overdue</div><div class="kpi-value">${k.over}</div><div class="kpi-sub">${k.pend} still pending</div></div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-panel">
+      <h3>Tasks per Month — ${activeYear}</h3>
+      <div class="bar-chart">${Array.from({length:12},(_,m)=>{
+        const cnt=DB.tasks.filter(t=>{const d=getTaskDate(t);if(!d)return false;const dt=new Date(d);return dt.getFullYear()===activeYear&&dt.getMonth()===m;}).length;
+        const done=DB.tasks.filter(t=>{const d=getTaskDate(t);if(!d)return false;const dt=new Date(d);return dt.getFullYear()===activeYear&&dt.getMonth()===m&&['Completed','Printed'].includes(t.status);}).length;
+        const pct=Math.round(cnt/maxMonth*100);
+        return`<div class="bar-row"><span class="bar-label">${MONTHS_S[m]}</span><div class="bar-track">${cnt>0?`<div class="bar-fill" style="width:${pct}%;background:var(--teal)"><span>${cnt}</span></div>`:`<span class="bar-zero">0</span>`}</div><span style="font-size:10px;color:var(--text3);width:28px;text-align:right;flex-shrink:0">${cnt>0?Math.round(done/cnt*100)+'%':''}</span></div>`;
+      }).join('')}</div>
+    </div>
+    <div class="chart-panel">
+      <h3>By Category</h3>
+      <div class="bar-chart" style="margin-bottom:16px">
+        ${[['🎉 Events',k.events,'var(--teal)'],['📱 Social & Video',k.social,'var(--coral)'],['🎨 Design & Print',k.design,'var(--pink)']].map(([l,v,c])=>`<div class="bar-row"><span class="bar-label">${l}</span><div class="bar-track">${v>0?`<div class="bar-fill" style="width:${Math.round(v/Math.max(k.total,1)*100)}%;background:${c}"><span>${v}</span></div>`:`<span class="bar-zero">0</span>`}</div></div>`).join('')}
+      </div>
+      <h3 style="margin-bottom:10px">By Priority</h3>
+      <div class="bar-chart">
+        ${[['🔴 High',DB.tasks.filter(t=>t.priority==='High').length,'var(--p-high-fg)'],['🟡 Medium',DB.tasks.filter(t=>t.priority==='Medium').length,'var(--p-med-fg)'],['🟢 Low',DB.tasks.filter(t=>t.priority==='Low').length,'var(--p-low-fg)']].map(([l,v,c])=>`<div class="bar-row"><span class="bar-label">${l}</span><div class="bar-track">${v>0?`<div class="bar-fill" style="width:${Math.round(v/Math.max(k.total,1)*100)}%;background:${c}"><span>${v}</span></div>`:`<span class="bar-zero">0</span>`}</div></div>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="dash-grid">
+    <div class="dash-panel">
+      <h3>⚠️ Overdue (${overdue.length})</h3>
+      ${overdue.length?`<table><thead><tr><th>Task</th><th>Due</th><th>Status</th></tr></thead><tbody>${overdue.map(t=>`<tr onclick="openEdit(${t.id},'task')" class="overdue-row"><td class="td-title">${t.title}</td><td style="color:#F87171;font-size:12px">${t.dueDate}</td><td>${sBadge(t.status)}</td></tr>`).join('')}</tbody></table>`:`<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">✅ No overdue tasks!</div>`}
+    </div>
+    <div class="dash-panel">
+      <h3>📅 Due This Week (${upcoming.length})</h3>
+      ${upcoming.length?`<table><thead><tr><th>Task</th><th>Due</th><th>Priority</th></tr></thead><tbody>${upcoming.map(t=>`<tr onclick="openEdit(${t.id},'task')"><td class="td-title">${t.title}</td><td style="color:var(--amber);font-size:12px">${t.dueDate}</td><td>${pBadge(t.priority)}</td></tr>`).join('')}</tbody></table>`:`<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">No tasks due this week.</div>`}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════
+// MONTHLY VIEW
+// ═══════════════════════════════════════
+function renderMonthly(){
+  const cards=MONTHS.map((mn,mi)=>{
+    const tasks=DB.tasks.filter(t=>{const d=getTaskDate(t);if(!d)return false;const dt=new Date(d);return dt.getFullYear()===activeYear&&dt.getMonth()===mi;});
+    const k=kpis(tasks);const dp=k.total?Math.round(k.done/k.total*100):0;
+    return`<div class="mo-card${activeMonth===mi?' mo-active':''}" onclick="setMonth(${mi})">
+      <div class="mo-month">${mn} ${activeYear}<span>${k.total} task${k.total!==1?'s':''}</span></div>
+      ${k.total>0?`<div class="mo-stats">
+        <div class="mo-stat" style="background:var(--s-done-bg)"><div class="mo-stat-val" style="color:var(--s-done-fg)">${k.done}</div><div class="mo-stat-lbl" style="color:var(--s-done-fg)">Done</div></div>
+        <div class="mo-stat" style="background:var(--s-prog-bg)"><div class="mo-stat-val" style="color:var(--s-prog-fg)">${k.prog}</div><div class="mo-stat-lbl" style="color:var(--s-prog-fg)">Active</div></div>
+        <div class="mo-stat" style="background:var(--s-pend-bg)"><div class="mo-stat-val" style="color:var(--s-pend-fg)">${k.pend}</div><div class="mo-stat-lbl" style="color:var(--s-pend-fg)">Pending</div></div>
+        <div class="mo-stat" style="background:var(--teal-dk)"><div class="mo-stat-val" style="color:var(--teal)">${k.events}</div><div class="mo-stat-lbl" style="color:var(--teal)">Events</div></div>
+      </div><div class="mo-bar"><div class="mo-bar-fill" style="width:${dp}%"></div></div>`:`<div style="color:var(--text3);font-size:12px;margin-top:4px">No tasks</div>`}
+    </div>`;
+  }).join('');
+  const sel=activeMonth==='all'?null:DB.tasks.filter(t=>{const d=getTaskDate(t);if(!d)return false;const dt=new Date(d);return dt.getFullYear()===activeYear&&dt.getMonth()===activeMonth;});
+  return`<div class="section-header"><div style="display:flex;align-items:center;gap:10px"><h2>📅 Monthly Overview</h2><select class="year-select" onchange="activeYear=parseInt(this.value);renderContent()">${availYears().map(y=>`<option value="${y}"${y===activeYear?'selected':''}>${y}</option>`).join('')}</select></div><button class="btn btn-ghost btn-sm" onclick="setMonth('all')">Show All</button></div>
+  <div class="month-overview">${cards}</div>
+  ${sel?`<div class="section-header"><h2>${MONTHS[activeMonth]} ${activeYear} — ${sel.length} task${sel.length!==1?'s':''}</h2></div>${taskTable(sel,t=>t===null?'<th>Category</th><th>Due</th>':`<td>${cBadge(t.category)}</td><td style="font-size:12px;color:var(--text2)">${t.dueDate||'—'}</td>`,false)}`:''}`;
+}
+
+// ═══════════════════════════════════════
+// TASK TABLE
+// ═══════════════════════════════════════
+function taskTable(tasks,extraCols,withFilters=true){
+  const sid='s'+Math.random().toString(36).slice(2,7);
+  const fid='f'+Math.random().toString(36).slice(2,7);
+  const tid='t'+Math.random().toString(36).slice(2,7);
+  if(withFilters) setTimeout(()=>{
+    const si=document.getElementById(sid),fi=document.getElementById(fid);
+    if(si)si.addEventListener('input',()=>filterTbl(tid,si.value,fi?fi.value:'all'));
+    if(fi)fi.addEventListener('change',()=>filterTbl(tid,document.getElementById(sid)?.value||'',fi.value));
+  },40);
+  const today=new Date();today.setHours(0,0,0,0);
+  const rows=tasks.map((t,i)=>{
+    const ov=!['Completed','Cancelled','Printed'].includes(t.status)&&t.dueDate&&new Date(t.dueDate)<today;
+    return`<tr class="${ov?'overdue-row':''}" data-status="${t.status}" data-search="${(t.title+' '+(t.desc||'')+' '+(t.assignedTo||'')).toLowerCase()}" onclick="openEdit(${t.id},'task')">
+      <td class="td-num">${i+1}</td>
+      <td><div class="td-title">${t.title}${ov?'<span style="color:#F87171;font-size:9px;margin-left:5px;font-weight:700">OVERDUE</span>':''}</div><div class="td-desc">${t.desc||''}</div></td>
+      ${extraCols(t)}
+      <td>${pBadge(t.priority)}</td>
+      <td>${sBadge(t.status)}</td>
+      <td style="color:var(--text2);font-size:12px;white-space:nowrap">${t.dueDate||'—'}</td>
+      <td style="color:var(--text2);font-size:12px">${t.assignedTo||'—'}</td>
+      <td><div class="row-actions"><button class="row-btn" onclick="event.stopPropagation();openEdit(${t.id},'task')">Edit</button><button class="row-btn del" onclick="event.stopPropagation();delTask(${t.id})">Del</button></div></td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="9"><div class="empty-state"><div class="e-icon">📭</div><p>No tasks found.</p><button class="btn btn-primary btn-sm" onclick="openAdd()">＋ Add Task</button></div></td></tr>`;
+  if(!withFilters)return`<div class="table-wrap"><table><thead><tr><th>#</th><th>Task</th>${extraCols(null)}<th>Priority</th><th>Status</th><th>Due</th><th>Assigned</th><th></th></tr></thead><tbody id="${tid}">${rows}</tbody></table></div>`;
+  return`<div class="filters-row" style="margin-bottom:10px">
+    <div class="search-box"><span style="color:var(--text3);font-size:13px">🔍</span><input id="${sid}" placeholder="Search tasks…"/></div>
+    <select class="filter-select" id="${fid}"><option value="all">All Status</option><option>Pending</option><option>In Progress</option><option>Completed</option><option>Cancelled</option></select>
+    <span style="font-size:12px;color:var(--text3);margin-left:4px">${tasks.length} task${tasks.length!==1?'s':''}</span>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>#</th><th>Task</th>${extraCols(null)}<th>Priority</th><th>Status</th><th>Due</th><th>Assigned</th><th></th></tr></thead><tbody id="${tid}">${rows}</tbody></table></div>`;
+}
+function filterTbl(tid,search,status){
+  document.querySelectorAll(`#${tid} tr[data-status]`).forEach(r=>{
+    const ms=!search||r.dataset.search.includes(search.toLowerCase());
+    const mf=status==='all'||r.dataset.status===status;
+    r.style.display=ms&&mf?'':'none';
+  });
+}
+
+// ═══════════════════════════════════════
+// TAB RENDERS
+// ═══════════════════════════════════════
+function filtered(cat){return(cat?DB.tasks.filter(t=>t.category===cat):DB.tasks).filter(matchMonth);}
+function renderAll(){
+  return`<div class="section-header"><h2>📋 All Tasks</h2><button class="btn btn-primary btn-sm" onclick="openAdd()">＋ Add Task</button></div>
+  <div class="section-desc">Master list of every task. Use month filter above to view by month.</div>
+  ${taskTable(filtered(null),t=>t===null?'<th>Category</th>':`<td>${cBadge(t.category)}</td>`)}`;
+}
+function renderEvents(){
+  return`<div class="section-header"><h2>🎉 Events</h2><button class="btn btn-primary btn-sm" onclick="openAdd('events')">＋ Add Event</button></div>
+  <div class="section-desc">Event planning tasks. Record venue, pax, budget and link design jobs in Design & Print.</div>
+  ${taskTable(filtered('Event'),t=>t===null?'<th>Venue</th><th>Event Date</th>':`<td style="font-size:12px;color:var(--text2);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.venue||'—'}</td><td style="font-size:12px;color:var(--text2);white-space:nowrap">${t.eventDate||'—'}</td>`)}`;
+}
+function renderSocial(){
+  return`<div class="section-header"><h2>📱 Social Media & Video</h2><button class="btn btn-primary btn-sm" onclick="openAdd('social')">＋ Add Content</button></div>
+  <div class="section-desc">Posts, reels, stories and video content. Select platforms for each task.</div>
+  ${taskTable(filtered('Social Media'),t=>t===null?'<th>Type</th><th>Platforms</th>':`<td>${t.contentType?tBadge(t.contentType,'coral'):''}</td><td>${(t.platforms||[]).map(p=>pfBadge(p)).join(' ')}</td>`)}`;
+}
+function renderDesign(){
+  return`<div class="section-header"><h2>🎨 Design & Print</h2><button class="btn btn-primary btn-sm" onclick="openAdd('design')">＋ Add Design Job</button></div>
+  <div class="section-desc">All design jobs and print materials. Tag with paper size and link to vendor for print jobs.</div>
+  ${taskTable(filtered('Design & Print'),t=>t===null?'<th>Type</th><th>Size / Vendor</th>':`<td>${t.designType?tBadge(t.designType,'pink'):''}</td><td style="font-size:12px;color:var(--text2)">${t.dimensions||''}${t.vendor?` · ${t.vendor}`:''}</td>`)}`;
+}
+function renderNotes(){
+  const cards=DB.notes.map(n=>`<div class="note-card${n.done==='Yes'?' done-card':''}" onclick="openEdit(${n.id},'note')">
+    <div class="note-card-top"><div class="note-card-title">${n.note}</div>${n.done==='Yes'?'<span class="badge badge-done">Done</span>':''}</div>
+    <div class="note-card-body">${n.details||'No details.'}</div>
+    <div class="note-card-footer">${tBadge(n.type,'blue')} ${pBadge(n.priority)} ${n.followUpDate?`<span style="font-size:10px;color:var(--text3)">📅 ${n.followUpDate}</span>`:''}</div>
+  </div>`).join('')||`<div class="empty-state" style="grid-column:1/-1"><div class="e-icon">📒</div><p>No notes yet.</p><button class="btn btn-primary btn-sm" onclick="openAddNote()">＋ Add Note</button></div>`;
+  return`<div class="section-header"><h2>📒 Notes & To-Do</h2><button class="btn btn-primary btn-sm" onclick="openAddNote()">＋ Add Note</button></div>
+  <div class="section-desc">Scratch pad for ideas, reminders and follow-ups not yet ready to be formal tasks.</div>
+  <div class="notes-grid">${cards}</div>`;
+}
+function renderVendors(){
+  const cards=DB.vendors.map(v=>`<div class="vendor-card" onclick="openEdit(${v.id},'vendor')">
+    <div class="vendor-name">${v.name}</div><div class="vendor-service">${v.service}</div>
+    <div class="vendor-info-row"><span>Contact</span><span>${v.contact||'—'}</span></div>
+    <div class="vendor-info-row"><span>Phone</span><span>${v.phone||'—'}</span></div>
+    <div class="vendor-info-row"><span>Price</span><span>${v.priceRange||'—'}</span></div>
+    <div class="vendor-info-row"><span>Rating</span><span>${v.rating||'—'}</span></div>
+    <div class="vendor-info-row"><span>Last used</span><span>${v.lastUsed||'—'}</span></div>
+  </div>`).join('')||`<div class="empty-state" style="grid-column:1/-1"><div class="e-icon">🏭</div><p>No vendors yet.</p><button class="btn btn-primary btn-sm" onclick="openAddVendor()">＋ Add Vendor</button></div>`;
+  return`<div class="section-header"><h2>🏭 Vendor Contacts</h2><button class="btn btn-primary btn-sm" onclick="openAddVendor()">＋ Add Vendor</button></div>
+  <div class="section-desc">Directory of printers, studios, photographers and suppliers.</div>
+  <div class="vendor-grid">${cards}</div>`;
+}
+
+// ═══════════════════════════════════════
+// ROUTING
+// ═══════════════════════════════════════
+function renderContent(){
+  const map={dashboard:renderDashboard,monthly:renderMonthly,all:renderAll,events:renderEvents,social:renderSocial,design:renderDesign,notes:renderNotes,vendors:renderVendors};
+  document.getElementById('mainContent').innerHTML=map[currentTab]();
+}
+function render(){buildMonthBar();renderContent();}
+document.getElementById('mainTabs').addEventListener('click',e=>{
+  const tab=e.target.closest('[data-tab]');if(!tab)return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  currentTab=tab.dataset.tab;
+  if(['dashboard','monthly','notes','vendors'].includes(currentTab))activeMonth='all';
+  render();
+});
+
+// ═══════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════
+let editId=null,editType=null;
+function openModal(title,body,footer,cat=''){
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalCat').textContent=cat?` · ${cat}`:'';
+  document.getElementById('modalBody').innerHTML=body;
+  document.getElementById('modalFooter').innerHTML=footer;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal(){document.getElementById('modalOverlay').classList.add('hidden');editId=null;editType=null;}
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+
+function currentCat(){return{events:'Event',social:'Social Media',design:'Design & Print'}[currentTab]||'Event';}
+
+// ── Platform multi-select ─────────────────────────────────
+function pfHTML(selected=[]){
+  const all=['All',...PLATFORMS];
+  return`<div class="platform-pills" id="pfPills">${all.map(p=>{
+    const key=p.replace(/\s/g,'').toLowerCase();
+    const cls=`ppill pf-${p==='All'?'all':p==='Facebook'?'fb':p==='Instagram'?'ig':p==='TikTok'?'tk':p==='XiaoHongShu'?'xhs':'li'}`;
+    const isSel=p==='All'?selected.length===PLATFORMS.length:selected.includes(p);
+    return`<span class="${cls}${isSel?' sel':''}" onclick="togglePf('${p}')">${p}</span>`;
+  }).join('')}</div>`;
+}
+function togglePf(p){
+  const pills=document.querySelectorAll('#pfPills .ppill');
+  const getSelected=()=>[...document.querySelectorAll('#pfPills .ppill.sel')].map(el=>el.textContent).filter(t=>t!=='All');
+  if(p==='All'){
+    const allSel=getSelected().length===PLATFORMS.length;
+    pills.forEach(el=>{if(allSel)el.classList.remove('sel');else el.classList.add('sel');});
+  } else {
+    const el=[...pills].find(el=>el.textContent===p);
+    if(el)el.classList.toggle('sel');
+    const allPill=[...pills].find(el=>el.textContent==='All');
+    if(allPill){const sel=getSelected();allPill.classList.toggle('sel',sel.length===PLATFORMS.length);}
+  }
+}
+function getSelectedPf(){return[...document.querySelectorAll('#pfPills .ppill.sel')].map(el=>el.textContent).filter(t=>t!=='All');}
+
+// ── Dimension pills ────────────────────────────────────────
+function dimHTML(selected=''){
+  return`<div class="dim-pills" id="dimPills">${DIMENSIONS.map(d=>`<span class="dpill${selected===d?' sel':''}" onclick="selectDim('${d}')">${d}</span>`).join('')}</div><input id="f_dimCustom" style="margin-top:6px;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text);font-size:12px;outline:none;${selected&&!DIMENSIONS.includes(selected)?'':'display:none'}" placeholder="Enter custom size e.g. 850x2000mm" value="${selected&&!DIMENSIONS.includes(selected)?selected:''}"/>`;
+}
+function selectDim(d){
+  document.querySelectorAll('#dimPills .dpill').forEach(el=>el.classList.toggle('sel',el.textContent===d));
+  const custom=document.getElementById('f_dimCustom');
+  if(custom)custom.style.display=d==='Custom'?'block':'none';
+}
+function getSelDim(){
+  const sel=[...document.querySelectorAll('#dimPills .dpill.sel')].map(el=>el.textContent)[0]||'';
+  if(sel==='Custom'){const c=document.getElementById('f_dimCustom');return c?c.value.trim():'';}
+  return sel;
+}
+
+// ── Task form ──────────────────────────────────────────────
+function taskForm(t={}){
+  const cat=t.category||currentCat();
+  return`<div class="form-grid">
+    <div class="form-group form-full"><label>Task Title *</label><input id="f_title" value="${t.title||''}" placeholder="e.g. Company Annual Dinner Poster"/></div>
+    <div class="form-group form-full"><label>Description</label><textarea id="f_desc">${t.desc||''}</textarea></div>
+    <div class="form-group"><label>Category</label><select id="f_cat" onchange="refreshCatFields()">
+      <option ${cat==='Event'?'selected':''}>Event</option>
+      <option ${cat==='Social Media'?'selected':''}>Social Media</option>
+      <option ${cat==='Design & Print'?'selected':''}>Design & Print</option>
+    </select></div>
+    <div class="form-group"><label>Priority</label><select id="f_pri">
+      ${['High','Medium','Low'].map(o=>`<option ${(t.priority||'Medium')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Status</label><select id="f_status">
+      ${['Pending','In Progress','Completed','Cancelled','Design Approved','Sent to Vendor','Printed'].map(o=>`<option ${(t.status||'Pending')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Assigned To</label><input id="f_assigned" value="${t.assignedTo||''}" placeholder="Name"/></div>
+    <div class="form-group"><label>Start Date</label><input id="f_start" type="date" value="${t.startDate||''}"/></div>
+    <div class="form-group"><label>Due Date</label><input id="f_due" type="date" value="${t.dueDate||''}"/></div>
+    <div class="form-group"><label>Completed On</label><input id="f_completed" type="date" value="${t.completedOn||''}"/></div>
+    <div class="form-group"><label>Linked Event / Campaign</label><input id="f_linked" value="${t.linkedTo||''}" placeholder="e.g. Tech Expo 2026"/></div>
+    <div class="form-group form-full"><label>Attachments</label><input id="f_attach" value="${t.attachments||''}" placeholder="filename.pdf, filename.ai — list file names"/></div>
+    <div id="catFields" class="form-full" style="grid-column:1/-1"></div>
+    <div class="form-group form-full"><label>Details & Notes</label><textarea id="f_notes">${t.notes||''}</textarea></div>
+    <div class="form-group"><label>Google Cal ID</label><input id="f_calid" value="${t.calId||''}" placeholder="event@google.com"/></div>
+  </div>`;
+}
+
+function refreshCatFields(){
+  const cat=gv('f_cat'),el=document.getElementById('catFields');if(!el)return;
+  const t=editId?DB.tasks.find(x=>x.id===editId)||{}:{};
+  if(cat==='Event') el.innerHTML=`<div class="form-section"><div class="form-section-label">🎉 Event Details</div><div class="form-grid">
+    <div class="form-group"><label>Event Date</label><input id="f_eventDate" type="date" value="${t.eventDate||''}"/></div>
+    <div class="form-group"><label>Venue / Location</label><input id="f_venue" value="${t.venue||''}" placeholder="Grand Ballroom, KL"/></div>
+    <div class="form-group"><label>Expected Pax</label><input id="f_pax" value="${t.pax||''}" placeholder="200"/></div>
+    <div class="form-group"><label>Budget (RM)</label><input id="f_budget" value="${t.budget||''}" placeholder="15000"/></div>
+  </div></div>`;
+  else if(cat==='Social Media') el.innerHTML=`<div class="form-section"><div class="form-section-label">📱 Content Details</div><div class="form-grid">
+    <div class="form-group"><label>Content Type</label><select id="f_contentType">
+      ${['Static Post','Reel / Video','Story','Carousel','Live'].map(o=>`<option ${(t.contentType||'Static Post')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Publish Date</label><input id="f_publishDate" type="date" value="${t.publishDate||''}"/></div>
+    <div class="form-group form-full"><label>Platforms (select all that apply)</label>${pfHTML(t.platforms||[])}</div>
+  </div></div>`;
+  else if(cat==='Design & Print') el.innerHTML=`<div class="form-section"><div class="form-section-label">🎨 Design & Print Details</div><div class="form-grid">
+    <div class="form-group"><label>Design Type</label><select id="f_designType">
+      ${['Event Asset','Social Media Asset','Brochure','Flyer','Banner / Signage','Card','Other Print'].map(o=>`<option ${(t.designType||'Brochure')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Colour Mode</label><select id="f_colorMode">
+      ${['CMYK','RGB','Both'].map(o=>`<option ${(t.colorMode||'CMYK')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+    <div class="form-group form-full"><label>Paper Size / Dimensions</label>${dimHTML(t.dimensions||'')}</div>
+    <div class="form-group"><label>Print Qty</label><input id="f_printQty" value="${t.printQty||''}" placeholder="500"/></div>
+    <div class="form-group"><label>Print Due Date</label><input id="f_printDue" type="date" value="${t.printDueDate||''}"/></div>
+    <div class="form-group"><label>Vendor Name</label><input id="f_vendor" value="${t.vendor||''}" placeholder="Print Pro KL"/></div>
+    <div class="form-group"><label>Vendor Confirmed</label><select id="f_vendorConf">
+      ${['TBC','Yes','No'].map(o=>`<option ${(t.vendorConfirmed||'TBC')===o?'selected':''}>${o}</option>`).join('')}
+    </select></div>
+  </div></div>`;
+  else el.innerHTML='';
+}
+
+function collectTask(){
+  const cat=gv('f_cat');
+  const base={title:gv('f_title').trim(),desc:gv('f_desc').trim(),category:cat,priority:gv('f_pri'),status:gv('f_status'),assignedTo:gv('f_assigned').trim(),startDate:gv('f_start'),dueDate:gv('f_due'),completedOn:gv('f_completed'),linkedTo:gv('f_linked').trim(),attachments:gv('f_attach').trim(),notes:gv('f_notes').trim(),calId:gv('f_calid').trim()};
+  if(cat==='Event')Object.assign(base,{eventDate:gv('f_eventDate'),venue:gv('f_venue').trim(),pax:gv('f_pax').trim(),budget:gv('f_budget').trim()});
+  else if(cat==='Social Media')Object.assign(base,{contentType:gv('f_contentType'),platforms:getSelectedPf(),publishDate:gv('f_publishDate')});
+  else if(cat==='Design & Print')Object.assign(base,{designType:gv('f_designType'),dimensions:getSelDim(),colorMode:gv('f_colorMode'),printQty:gv('f_printQty').trim(),printDueDate:gv('f_printDue'),vendor:gv('f_vendor').trim(),vendorConfirmed:gv('f_vendorConf')});
+  return base;
+}
+
+function openAdd(hint){
+  editId=null;editType='task';
+  const cat=hint?{events:'Event',social:'Social Media',design:'Design & Print'}[hint]||'Event':currentCat();
+  openModal('Add Task',taskForm({category:cat}),'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveTask()">Save Task</button>',cat);
+  setTimeout(()=>refreshCatFields(),30);
+}
+function openEdit(id,type){
+  editId=id;editType=type;
+  if(type==='task'){
+    const t=DB.tasks.find(x=>x.id===id);if(!t)return;
+    openModal('Edit Task',taskForm(t),`<button class="btn btn-danger btn-sm" onclick="delTask(${id})">Delete</button><div style="flex:1"></div><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveTask(${id})">Save Changes</button>`,t.category);
+    setTimeout(()=>refreshCatFields(),30);
+  }else if(type==='note'){
+    const n=DB.notes.find(x=>x.id===id);if(!n)return;
+    openModal('Edit Note',noteForm(n),`<button class="btn btn-danger btn-sm" onclick="delNote(${id})">Delete</button><div style="flex:1"></div><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveNote(${id})">Save</button>`);
+  }else if(type==='vendor'){
+    const v=DB.vendors.find(x=>x.id===id);if(!v)return;
+    openModal('Edit Vendor',vendorForm(v),`<button class="btn btn-danger btn-sm" onclick="delVendor(${id})">Delete</button><div style="flex:1"></div><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveVendor(${id})">Save</button>`);
+  }
+}
+function openAddNote(){editId=null;editType='note';openModal('Add Note',noteForm(),'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveNote()">Save Note</button>');}
+function openAddVendor(){editId=null;editType='vendor';openModal('Add Vendor',vendorForm(),'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveVendor()">Save Vendor</button>');}
+
+function saveTask(id){
+  const d=collectTask();if(!d.title){toast('Task title is required','error');return;}
+  if(id){const i=DB.tasks.findIndex(x=>x.id===id);if(i>-1)DB.tasks[i]={...DB.tasks[i],...d};}
+  else DB.tasks.push({id:DB.nextTaskId++,...d});
+  save();closeModal();render();toast(id?'Task updated ✓':'Task added ✓');
+}
+function delTask(id){if(!confirm('Delete this task?'))return;DB.tasks=DB.tasks.filter(x=>x.id!==id);save();closeModal();render();toast('Task deleted');}
+
+function noteForm(n={}){
+  return`<div class="form-grid">
+    <div class="form-group form-full"><label>Note / To-Do *</label><input id="fn_note" value="${n.note||''}" placeholder="e.g. Follow up with vendor for quote"/></div>
+    <div class="form-group"><label>Type</label><select id="fn_type">${['Idea','Reminder','Follow-Up','Research','Meeting Note','Other'].map(o=>`<option ${n.type===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Priority</label><select id="fn_pri">${['High','Medium','Low'].map(o=>`<option ${(n.priority||'Medium')===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Status</label><select id="fn_status">${['Open','Done','Dropped'].map(o=>`<option ${(n.status||'Open')===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Related To</label><input id="fn_related" value="${n.relatedTo||''}" placeholder="Company Brochure…"/></div>
+    <div class="form-group"><label>Date Added</label><input id="fn_dateAdded" type="date" value="${n.dateAdded||new Date().toISOString().slice(0,10)}"/></div>
+    <div class="form-group"><label>Follow-Up Date</label><input id="fn_followUp" type="date" value="${n.followUpDate||''}"/></div>
+    <div class="form-group"><label>Done?</label><select id="fn_done"><option ${(n.done||'No')==='No'?'selected':''}>No</option><option ${n.done==='Yes'?'selected':''}>Yes</option></select></div>
+    <div class="form-group form-full"><label>Details</label><textarea id="fn_details">${n.details||''}</textarea></div>
+  </div>`;
+}
+function saveNote(id){
+  const d={note:gv('fn_note').trim(),type:gv('fn_type'),priority:gv('fn_pri'),status:gv('fn_status'),relatedTo:gv('fn_related').trim(),dateAdded:gv('fn_dateAdded'),followUpDate:gv('fn_followUp'),done:gv('fn_done'),details:gv('fn_details').trim()};
+  if(!d.note){toast('Note text required','error');return;}
+  if(id){const i=DB.notes.findIndex(x=>x.id===id);if(i>-1)DB.notes[i]={...DB.notes[i],...d};}
+  else DB.notes.push({id:DB.nextNoteId++,...d});
+  save();closeModal();render();toast(id?'Note updated ✓':'Note added ✓');
+}
+function delNote(id){if(!confirm('Delete this note?'))return;DB.notes=DB.notes.filter(x=>x.id!==id);save();closeModal();render();toast('Note deleted');}
+
+function vendorForm(v={}){
+  return`<div class="form-grid">
+    <div class="form-group form-full"><label>Vendor Name *</label><input id="fv_name" value="${v.name||''}" placeholder="Print Pro KL"/></div>
+    <div class="form-group"><label>Contact Person</label><input id="fv_contact" value="${v.contact||''}"/></div>
+    <div class="form-group"><label>Service Type</label><select id="fv_service">${['Printing','Photography','Videography','Graphic Design','Event Venue','Catering','AV & Tech','Logistics','Other'].map(o=>`<option ${v.service===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Phone</label><input id="fv_phone" value="${v.phone||''}" placeholder="012-345 6789"/></div>
+    <div class="form-group"><label>Email</label><input id="fv_email" value="${v.email||''}"/></div>
+    <div class="form-group"><label>Website / IG</label><input id="fv_web" value="${v.website||''}"/></div>
+    <div class="form-group form-full"><label>Address</label><input id="fv_addr" value="${v.address||''}"/></div>
+    <div class="form-group"><label>Price Range</label><input id="fv_price" value="${v.priceRange||''}" placeholder="RM0.80–2.50/pcs"/></div>
+    <div class="form-group"><label>Rating</label><select id="fv_rating">${['⭐⭐⭐⭐⭐','⭐⭐⭐⭐','⭐⭐⭐','⭐⭐','⭐'].map(o=>`<option ${v.rating===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Last Used</label><input id="fv_lastUsed" type="date" value="${v.lastUsed||''}"/></div>
+    <div class="form-group"><label>Used For</label><input id="fv_usedFor" value="${v.usedFor||''}"/></div>
+    <div class="form-group"><label>Payment Terms</label><input id="fv_payment" value="${v.paymentTerms||''}" placeholder="50% deposit"/></div>
+    <div class="form-group form-full"><label>Notes</label><textarea id="fv_notes">${v.notes||''}</textarea></div>
+  </div>`;
+}
+function saveVendor(id){
+  const d={name:gv('fv_name').trim(),contact:gv('fv_contact').trim(),service:gv('fv_service'),phone:gv('fv_phone').trim(),email:gv('fv_email').trim(),website:gv('fv_web').trim(),address:gv('fv_addr').trim(),priceRange:gv('fv_price').trim(),rating:gv('fv_rating'),lastUsed:gv('fv_lastUsed'),usedFor:gv('fv_usedFor').trim(),paymentTerms:gv('fv_payment').trim(),notes:gv('fv_notes').trim()};
+  if(!d.name){toast('Vendor name required','error');return;}
+  if(id){const i=DB.vendors.findIndex(x=>x.id===id);if(i>-1)DB.vendors[i]={...DB.vendors[i],...d};}
+  else DB.vendors.push({id:DB.nextVendorId++,...d});
+  save();closeModal();render();toast(id?'Vendor updated ✓':'Vendor added ✓');
+}
+function delVendor(id){if(!confirm('Delete this vendor?'))return;DB.vendors=DB.vendors.filter(x=>x.id!==id);save();closeModal();render();toast('Vendor deleted');}
+
+// ═══════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════
+function toast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.innerHTML=`${type==='success'?'✓':type==='error'?'✕':'ℹ'} ${msg}`;
+  t.className=`toast t-${type} show`;
+  clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ═══════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════
+function toggleTheme(){
+  const isLight=document.body.classList.toggle('light');
+  const btn=document.getElementById('themeToggle');
+  btn.textContent=isLight?'🌑':'🌙';
+  btn.title=isLight?'Switch to dark mode':'Switch to light mode';
+  localStorage.setItem('yct_theme',isLight?'light':'dark');
+}
+(function(){
+  if(localStorage.getItem('yct_theme')==='light'){
+    document.body.classList.add('light');
+    document.addEventListener('DOMContentLoaded',()=>{
+      const btn=document.getElementById('themeToggle');
+      if(btn){btn.textContent='🌑';btn.title='Switch to dark mode';}
+    });
+  }
+})();
+
+// ═══════════════════════════════════════
+// EXCEL EXPORT
+// ═══════════════════════════════════════
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  const TH=['#','Title','Description','Category','Priority','Status','Assigned To','Start Date','Due Date','Completed On','Linked To','Attachments','Notes','Cal ID','Venue','Event Date','Pax','Budget','Content Type','Platforms','Publish Date','Design Type','Dimensions','Colour Mode','Print Qty','Print Due','Vendor','Vendor Confirmed'];
+  const TR=DB.tasks.map((t,i)=>[i+1,t.title,t.desc,t.category,t.priority,t.status,t.assignedTo,t.startDate,t.dueDate,t.completedOn,t.linkedTo,t.attachments,t.notes,t.calId,t.venue||'',t.eventDate||'',t.pax||'',t.budget||'',t.contentType||'',(t.platforms||[]).join(', '),t.publishDate||'',t.designType||'',t.dimensions||'',t.colorMode||'',t.printQty||'',t.printDueDate||'',t.vendor||'',t.vendorConfirmed||'']);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([TH,...TR]),'All Tasks');
+  const EH=['#','Event','Description','Priority','Status','Assigned','Event Date','Due Date','Completed','Venue','Pax','Budget (RM)','Linked To','Notes'];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([EH,...DB.tasks.filter(t=>t.category==='Event').map((t,i)=>[i+1,t.title,t.desc,t.priority,t.status,t.assignedTo,t.eventDate,t.dueDate,t.completedOn,t.venue,t.pax,t.budget,t.linkedTo,t.notes])]),'Events');
+  const SH=['#','Content Title','Description','Type','Platforms','Priority','Status','Assigned','Publish Date','Due','Completed','Linked','Notes'];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([SH,...DB.tasks.filter(t=>t.category==='Social Media').map((t,i)=>[i+1,t.title,t.desc,t.contentType,(t.platforms||[]).join(', '),t.priority,t.status,t.assignedTo,t.publishDate,t.dueDate,t.completedOn,t.linkedTo,t.notes])]),'Social Media');
+  const DH=['#','Job Title','Description','Design Type','Dimensions','Priority','Status','Assigned','Linked','Design Due','Print Due','Colour Mode','Qty','Vendor','Vendor Confirmed','Notes'];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([DH,...DB.tasks.filter(t=>t.category==='Design & Print').map((t,i)=>[i+1,t.title,t.desc,t.designType,t.dimensions,t.priority,t.status,t.assignedTo,t.linkedTo,t.dueDate,t.printDueDate,t.colorMode,t.printQty,t.vendor,t.vendorConfirmed,t.notes])]),'Design & Print');
+  const NH=['#','Note','Type','Priority','Status','Related To','Date Added','Follow-Up','Done?','Details'];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([NH,...DB.notes.map((n,i)=>[i+1,n.note,n.type,n.priority,n.status,n.relatedTo,n.dateAdded,n.followUpDate,n.done,n.details])]),'Notes');
+  const VH=['#','Vendor','Contact','Service','Phone','Email','Address','Website','Price Range','Rating','Last Used','Used For','Payment Terms','Notes'];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([VH,...DB.vendors.map((v,i)=>[i+1,v.name,v.contact,v.service,v.phone,v.email,v.address,v.website,v.priceRange,v.rating,v.lastUsed,v.usedFor,v.paymentTerms,v.notes])]),'Vendors');
+  // Monthly analysis
+  const years=[...new Set(DB.tasks.map(t=>{const d=getTaskDate(t);return d?new Date(d).getFullYear():null;}).filter(Boolean))].sort();
+  const MA=[['Month','Year','Total','Completed','In Progress','Pending','Cancelled','Completion %','Events','Social Media','Design & Print']];
+  years.forEach(yr=>MONTHS.forEach((mn,mi)=>{
+    const tasks=DB.tasks.filter(t=>{const d=getTaskDate(t);if(!d)return false;const dt=new Date(d);return dt.getFullYear()===yr&&dt.getMonth()===mi;});
+    if(!tasks.length)return;const k=kpis(tasks);
+    MA.push([mn,yr,k.total,k.done,k.prog,k.pend,k.canc,k.total?Math.round(k.done/k.total*100)+'%':'0%',k.events,k.social,k.design]);
+  }));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(MA),'Monthly Analysis');
+  const today=new Date();today.setHours(0,0,0,0);
+  const k=kpis(DB.tasks);
+  const ov=DB.tasks.filter(t=>!['Completed','Cancelled','Printed'].includes(t.status)&&t.dueDate&&new Date(t.dueDate)<today);
+  const SR=[['YCTasks — Summary Report'],['Exported',new Date().toLocaleDateString('en-MY',{day:'2-digit',month:'long',year:'numeric'})],[''],
+    ['OVERALL'],['Total Tasks',k.total],['Completed',k.done],['In Progress',k.prog],['Pending',k.pend],['Cancelled',k.canc],['Completion Rate',k.total?Math.round(k.done/k.total*100)+'%':'0%'],['Overdue',ov.length],[''],
+    ['BY CATEGORY'],['Events',k.events],['Social Media & Video',k.social],['Design & Print',k.design],[''],
+    ['OVERDUE TASKS'],['Title','Due Date','Category','Priority','Status'],...ov.map(t=>[t.title,t.dueDate,t.category,t.priority,t.status]),[''],
+    ['VENDORS',DB.vendors.length],...['Printing','Photography','Videography'].map(s=>[s,DB.vendors.filter(v=>v.service===s).length]),
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(SR),'Summary Report');
+  XLSX.writeFile(wb,`YCTasks_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Excel exported — 8 sheets!');
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+render();
+</script>
+</body>
+</html>
